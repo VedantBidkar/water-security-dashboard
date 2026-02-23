@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Security & Drought Management Dashboard – India</title>
+
+  <!-- ─── External Libraries ─── -->
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════
+       NAV BAR
+  ════════════════════════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand">
+      <i class="fas fa-water"></i>
+      <span>JalDrishti</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#hero">Home</a></li>
+      <li><a href="#metrics">Metrics</a></li>
+      <li><a href="#map-section">Map</a></li>
+      <li><a href="#analytics">Analytics</a></li>
+      <li><a href="#alerts">Alerts</a></li>
+      <li><a href="#policy">Policy</a></li>
+    </ul>
+    <button class="nav-cta" id="smsAlertBtn">
+      <i class="fas fa-bell"></i> Enable Alerts
+    </button>
+    <div class="hamburger" id="hamburger">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- ════════════════════════════════════════
+       1. HERO SECTION
+  ════════════════════════════════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg-grid"></div>
+    <div class="hero-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <i class="fas fa-satellite-dish"></i>
+        <span>Live Monitoring System</span>
+      </div>
+      <h1 class="hero-title">
+        Water Security &<br />
+        <span class="gradient-text">Drought Management</span><br />
+        Dashboard — India
+      </h1>
+      <p class="hero-subtitle">
+        Real-time hydrology intelligence, drought severity mapping &amp; climate
+        resilience analytics for all 28 states and 8 union territories of India.
+      </p>
+      <div class="hero-actions">
+        <a href="#metrics" class="btn-primary smooth-scroll">
+          <i class="fas fa-chart-line"></i> View Live Dashboard
+        </a>
+        <a href="#map-section" class="btn-outline smooth-scroll">
+          <i class="fas fa-map-marked-alt"></i> Explore Map
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="h-stat"><span class="h-num" data-target="36">0</span><span>States Monitored</span></div>
+        <div class="h-stat"><span class="h-num" data-target="1200">0</span>K+<span>Data Points / Day</span></div>
+        <div class="h-stat"><span class="h-num" data-target="98">0</span>%<span>Uptime</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="water-ring ring-1"></div>
+      <div class="water-ring ring-2"></div>
+      <div class="water-ring ring-3"></div>
+      <div class="hero-icon-center">
+        <i class="fas fa-globe-asia"></i>
+      </div>
+    </div>
+    <div class="scroll-hint">
+      <span>Scroll to explore</span>
+      <i class="fas fa-chevron-down"></i>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       2. METRICS CARDS
+  ════════════════════════════════════════ -->
+  <section class="section" id="metrics">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Live Data</div>
+        <h2>Key Water Security Metrics</h2>
+        <p>Updated in real-time via OpenWeatherMap API. Severity thresholds follow IMD guidelines.</p>
+      </div>
+
+      <!-- Live city selector -->
+      <div class="city-selector">
+        <label for="citySelect"><i class="fas fa-map-pin"></i> Monitoring City:</label>
+        <select id="citySelect">
+          <option value="Delhi">Delhi</option>
+          <option value="Mumbai">Mumbai</option>
+          <option value="Chennai">Chennai</option>
+          <option value="Kolkata">Kolkata</option>
+          <option value="Bengaluru">Bengaluru</option>
+          <option value="Hyderabad">Hyderabad</option>
+          <option value="Ahmedabad">Ahmedabad</option>
+          <option value="Jaipur">Jaipur</option>
+          <option value="Lucknow">Lucknow</option>
+          <option value="Patna">Patna</option>
+        </select>
+        <button id="fetchWeatherBtn" class="btn-fetch">
+          <i class="fas fa-sync-alt"></i> Fetch Live Data
+        </button>
+        <span class="api-status" id="apiStatus"></span>
+      </div>
+
+      <div class="metrics-grid" id="metricsGrid">
+        <!-- Cards generated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       3 & 4. INTERACTIVE INDIA MAP + HEATMAP
+  ════════════════════════════════════════ -->
+  <section class="section section-dark" id="map-section">
+    <div class="container">
+      <div class="section-header light">
+        <div class="section-tag">Spatial Intelligence</div>
+        <h2>India Drought &amp; Water Stress Map</h2>
+        <p>Click any state for detailed metrics. Toggle layers below.</p>
+      </div>
+
+      <div class="map-toolbar">
+        <div class="map-controls-left">
+          <label for="yearSelect"><i class="fas fa-calendar"></i> Historical Year:</label>
+          <select id="yearSelect">
+            <option value="2025">2025 (Current)</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+        </div>
+        <div class="map-controls-right">
+          <label class="toggle-label">
+            <input type="checkbox" id="heatmapToggle" checked />
+            <span class="toggle-slider"></span>
+            <span>Water Stress Heatmap</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="choroplethToggle" checked />
+            <span class="toggle-slider"></span>
+            <span>Drought Choropleth</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="map-wrapper">
+        <div id="indiaMap"></div>
+        <div class="map-legend" id="mapLegend">
+          <h4><i class="fas fa-info-circle"></i> Drought Severity</h4>
+          <div class="legend-item"><span class="dot" style="background:#22c55e"></span> Normal</div>
+          <div class="legend-item"><span class="dot" style="background:#facc15"></span> Moderate</div>
+          <div class="legend-item"><span class="dot" style="background:#f97316"></span> Severe</div>
+          <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Extreme</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       5. ANALYTICS / CHARTS
+  ════════════════════════════════════════ -->
+  <section class="section" id="analytics">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Analytics</div>
+        <h2>Trends &amp; Water Analytics</h2>
+        <p>12-month rolling data with seasonal benchmarking.</p>
+      </div>
+
+      <div class="charts-grid">
+        <!-- Rainfall Trend -->
+        <div class="chart-card span-2">
+          <div class="chart-card-header">
+            <div>
+              <h3><i class="fas fa-cloud-rain"></i> Rainfall Trend</h3>
+              <p>Monthly rainfall (mm) vs. 30-year normal</p>
+            </div>
+            <select id="rainfallStateSelect" class="chart-select">
+              <option>All India</option>
+              <option>Rajasthan</option>
+              <option>Maharashtra</option>
+              <option>Kerala</option>
+              <option>Punjab</option>
+            </select>
+          </div>
+          <canvas id="rainfallChart"></canvas>
+        </div>
+
+        <!-- Reservoir Levels -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <h3><i class="fas fa-database"></i> Reservoir Storage</h3>
+              <p>Storage levels (BCM) — top 10 reservoirs</p>
+            </div>
+          </div>
+          <canvas id="reservoirChart"></canvas>
+        </div>
+
+        <!-- Groundwater Depletion -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <h3><i class="fas fa-arrow-trend-down"></i> Groundwater Depletion</h3>
+              <p>Depth to water table (m) over 12 months</p>
+            </div>
+          </div>
+          <canvas id="groundwaterChart"></canvas>
+        </div>
+
+        <!-- Water Usage -->
+        <div class="chart-card donut-card">
+          <div class="chart-card-header">
+            <div>
+              <h3><i class="fas fa-pie-chart"></i> Water Usage by Sector</h3>
+              <p>Annual freshwater withdrawal share</p>
+            </div>
+          </div>
+          <canvas id="usagePieChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       6. ALERT SYSTEM
+  ════════════════════════════════════════ -->
+  <section class="section section-alert" id="alerts">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag warning">Alert System</div>
+        <h2>Drought Early Warning System</h2>
+        <p>Automated alerts when drought severity crosses critical thresholds.</p>
+      </div>
+
+      <div class="alert-panel">
+        <div class="alert-left">
+          <div class="alert-status-card" id="alertStatusCard">
+            <div class="pulse-ring"></div>
+            <div class="alert-icon"><i class="fas fa-satellite-dish"></i></div>
+            <h3>System Status</h3>
+            <p id="alertSystemStatus">Monitoring Active</p>
+            <div class="severity-bar">
+              <div class="severity-fill" id="severityFill" style="width:45%"></div>
+            </div>
+            <span id="severityLabel" class="severity-label moderate">Moderate Risk</span>
+          </div>
+        </div>
+
+        <div class="alert-right">
+          <h3>Alert Preferences</h3>
+          <div class="alert-options">
+            <div class="alert-option">
+              <label class="toggle-label">
+                <input type="checkbox" id="smsCheck" />
+                <span class="toggle-slider"></span>
+                <span><i class="fas fa-sms"></i> SMS Alerts</span>
+              </label>
+            </div>
+            <div class="alert-option">
+              <label class="toggle-label">
+                <input type="checkbox" id="emailCheck" checked />
+                <span class="toggle-slider"></span>
+                <span><i class="fas fa-envelope"></i> Email Alerts</span>
+              </label>
+            </div>
+            <div class="alert-option">
+              <label class="toggle-label">
+                <input type="checkbox" id="pushCheck" checked />
+                <span class="toggle-slider"></span>
+                <span><i class="fas fa-bell"></i> Push Notifications</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="phone-input-group">
+            <input type="tel" id="phoneInput" placeholder="+91 98765 43210" />
+            <button class="btn-primary" id="saveAlertBtn">
+              <i class="fas fa-save"></i> Save Preferences
+            </button>
+          </div>
+
+          <div class="alert-thresholds">
+            <h4>Active Thresholds</h4>
+            <div class="threshold-item">
+              <span>Rainfall &lt; 40mm/month</span>
+              <span class="badge severe">Severe</span>
+            </div>
+            <div class="threshold-item">
+              <span>Rainfall &lt; 20mm/month</span>
+              <span class="badge extreme">Extreme</span>
+            </div>
+            <div class="threshold-item">
+              <span>Temperature &gt; 40°C</span>
+              <span class="badge extreme">Extreme</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent alerts feed -->
+      <div class="alerts-feed" id="alertsFeed">
+        <h3><i class="fas fa-list-ul"></i> Recent Alert Log</h3>
+        <div id="alertList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       7. POLICY & GOVERNANCE
+  ════════════════════════════════════════ -->
+  <section class="section section-policy" id="policy">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Governance</div>
+        <h2>Policy &amp; Governance Framework</h2>
+        <p>Government schemes, water allocation policies &amp; SDG 6 tracking.</p>
+      </div>
+
+      <div class="policy-grid" id="policyGrid">
+        <!-- Generated by JS -->
+      </div>
+
+      <!-- SDG 6 Progress -->
+      <div class="sdg-section">
+        <div class="sdg-header">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/SDG_logo_without_UN_emblem_square_RGB.svg" alt="SDG Logo" class="sdg-logo" />
+          <div>
+            <h3>SDG 6 — Clean Water &amp; Sanitation Progress</h3>
+            <p>India's progress towards Sustainable Development Goal 6 targets for 2030</p>
+          </div>
+        </div>
+        <div class="sdg-bars" id="sdgBars">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="nav-brand"><i class="fas fa-water"></i><span>JalDrishti</span></div>
+          <p>India's premier water security &amp; drought management intelligence platform.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <a href="#metrics">Live Metrics</a>
+          <a href="#map-section">Drought Map</a>
+          <a href="#analytics">Analytics</a>
+          <a href="#policy">Policy Hub</a>
+        </div>
+        <div class="footer-links">
+          <h4>Data Sources</h4>
+          <a href="https://imd.gov.in" target="_blank">IMD India</a>
+          <a href="https://cwc.gov.in" target="_blank">CWC India</a>
+          <a href="https://openweathermap.org" target="_blank">OpenWeatherMap</a>
+          <a href="https://sdgs.un.org" target="_blank">UN SDG Portal</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 JalDrishti Dashboard. Built for India's Water Future. Data is simulated for demonstration purposes.</p>
+        <p>Powered by Leaflet.js · Chart.js · OpenWeatherMap API</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ════════════════════════════════════════
+       MODALS
+  ════════════════════════════════════════ -->
+
+  <!-- Drought Alert Modal -->
+  <div class="modal-overlay" id="droughtModal">
+    <div class="modal-box extreme">
+      <div class="modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+      <h2>⚠️ EXTREME DROUGHT ALERT</h2>
+      <p id="modalMessage">Critical drought conditions detected. Immediate action required.</p>
+      <div class="modal-sms-sent" id="smsSentBadge" style="display:none">
+        <i class="fas fa-check-circle"></i> SMS Alert Sent Successfully
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="modalAck">Acknowledge Alert</button>
+        <button class="btn-outline" id="modalClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Save Confirmation Toast -->
+  <div class="toast" id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toastMessage">Preferences saved!</span>
+  </div>
+
+  <!-- ─── Scripts ─── -->
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet Heat Plugin -->
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <script src="script.js"></script>
+</body>
+</html>
