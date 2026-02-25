@@ -24,7 +24,7 @@ const CONFIG = {
   RAINFALL_SEVERE_THRESHOLD:  40,
   TEMP_EXTREME_THRESHOLD:     40,
   TEMP_SEVERE_THRESHOLD:      36,
-  INDIA_GEOJSON_URL: 'https://raw.githubusercontent.com/geohacker/india/master/state/india_telengana.geojson',
+  INDIA_GEOJSON_URL: 'https://raw.githubusercontent.com/india-in-data/india-states-2019/master/india_states.geojson',
 };
 
 const SEVERITY = {
@@ -749,31 +749,25 @@ function styleFeature(feature, data) {
 }
 // Mapping from GeoJSON property names → our STATE_DATA keys
 // The geohacker GeoJSON uses older/variant spellings for several states
+// Exact ST_NM values from india-in-data/india-states-2019 GeoJSON → STATE_DATA keys
 const GEOJSON_NAME_MAP = {
-  // Kashmir: old undivided state in GeoJSON → map to J&K data key
-  'Jammu & Kashmir':        'Jammu and Kashmir',
-  'Jammu and Kashmir':      'Jammu and Kashmir',
-  'Jammu & Kashmiradesh':   'Jammu and Kashmir',
-  // Ladakh was carved out in 2019 — GeoJSON still shows old J&K boundary
-  // We keep Ladakh as a separate entry but it falls inside the J&K polygon
+  'Jammu & Kashmir':        'Jammu and Kashmir',  // GoI full claim incl. POK
   'Ladakh':                 'Ladakh',
-  // Uttarakhand was called Uttaranchal until 2007
-  'Uttaranchal':            'Uttarakhand',
   'Uttarakhand':            'Uttarakhand',
-  // Telangana was bifurcated from AP in 2014; some GeoJSONs still show old AP
-  'Telangana':              'Telangana',
-  // Odisha alternate spelling
-  'Orissa':                 'Odisha',
+  'Uttaranchal':            'Uttarakhand',
   'Odisha':                 'Odisha',
-  // Other common variants
-  'Pondicherry':            'Goa',   // fallback for missing UTs
+  'Orissa':                 'Odisha',
+  'Telangana':              'Telangana',
   'NCT of Delhi':           'Delhi',
   'Delhi':                  'Delhi',
+  'Andaman & Nicobar':      'Andaman and Nicobar Islands',
+  'Andaman and Nicobar':    'Andaman and Nicobar Islands',
 };
 
 function getStateName(feature) {
   const p = feature.properties;
-  const raw = p.NAME_1 || p.name || p.ST_NM || p.state || '';
+  // india-states-2019 uses ST_NM; fall back to other common property keys
+  const raw = p.ST_NM || p.NAME_1 || p.name || p.state || '';
   return GEOJSON_NAME_MAP[raw] || raw;
 }
 function buildPopupHTML(name, d, sev) {
