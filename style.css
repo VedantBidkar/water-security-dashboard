@@ -723,6 +723,7 @@ select:focus { border-color: var(--blue); }
 .leaflet-control-attribution { background: rgba(4,15,26,0.85) !important; color: var(--text-muted) !important; font-size: 0.68rem !important; }
 
 .state-popup h4 { font-family: var(--font-display); font-size: 0.98rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.popup-note { font-size: 0.72rem; color: var(--saffron); background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.2); border-radius: 6px; padding: 5px 8px; margin-bottom: 10px; line-height: 1.4; }
 .state-popup table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
 .state-popup td { padding: 4px 0; color: var(--text-muted); }
 .state-popup td:last-child { color: var(--text); font-weight: 600; text-align: right; }
