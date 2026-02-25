@@ -70,6 +70,10 @@ const STATE_DATA = {
     'Delhi':           { rainfall: 25, temp: 38, reservoir: 38, groundwater: 48 },
     'Jammu and Kashmir':{ rainfall: 80, temp: 18, reservoir: 82, groundwater: 20 },
     'Ladakh':          { rainfall: 12, temp: 10, reservoir: 40, groundwater: 55 },
+    // GeoJSON alternate name aliases
+    'Uttaranchal':     { rainfall: 95, temp: 28, reservoir: 85, groundwater: 18 },
+    'Orissa':          { rainfall: 75, temp: 33, reservoir: 78, groundwater: 22 },
+    'NCT of Delhi':    { rainfall: 25, temp: 38, reservoir: 38, groundwater: 48 },
   },
   2024: {
     'Rajasthan':       { rainfall: 12, temp: 43, reservoir: 22, groundwater: 50 },
@@ -743,14 +747,44 @@ function styleFeature(feature, data) {
   const s = SEVERITY[sev];
   return { fillColor:s.color, color:'#0a1f2e', weight:1.5, fillOpacity:s.fillOpacity, opacity:1 };
 }
+// Mapping from GeoJSON property names → our STATE_DATA keys
+// The geohacker GeoJSON uses older/variant spellings for several states
+const GEOJSON_NAME_MAP = {
+  // Kashmir: old undivided state in GeoJSON → map to J&K data key
+  'Jammu & Kashmir':        'Jammu and Kashmir',
+  'Jammu and Kashmir':      'Jammu and Kashmir',
+  'Jammu & Kashmiradesh':   'Jammu and Kashmir',
+  // Ladakh was carved out in 2019 — GeoJSON still shows old J&K boundary
+  // We keep Ladakh as a separate entry but it falls inside the J&K polygon
+  'Ladakh':                 'Ladakh',
+  // Uttarakhand was called Uttaranchal until 2007
+  'Uttaranchal':            'Uttarakhand',
+  'Uttarakhand':            'Uttarakhand',
+  // Telangana was bifurcated from AP in 2014; some GeoJSONs still show old AP
+  'Telangana':              'Telangana',
+  // Odisha alternate spelling
+  'Orissa':                 'Odisha',
+  'Odisha':                 'Odisha',
+  // Other common variants
+  'Pondicherry':            'Goa',   // fallback for missing UTs
+  'NCT of Delhi':           'Delhi',
+  'Delhi':                  'Delhi',
+};
+
 function getStateName(feature) {
   const p = feature.properties;
-  return p.NAME_1 || p.name || p.ST_NM || p.state || '';
+  const raw = p.NAME_1 || p.name || p.ST_NM || p.state || '';
+  return GEOJSON_NAME_MAP[raw] || raw;
 }
 function buildPopupHTML(name, d, sev) {
   const sevColor = getSeverityColor(sev);
+  // Kashmir boundary note — GeoJSON shows pre-2019 undivided boundary
+  const kashmirNote = (name === 'Jammu and Kashmir' || name === 'Ladakh')
+    ? `<div class="popup-note">⚠ Map shows pre-2019 boundary. J&amp;K and Ladakh are now separate UTs.</div>`
+    : '';
   return `<div class="state-popup">
     <h4><i class="fas fa-map-marker-alt" style="color:${sevColor}"></i> ${name}</h4>
+    ${kashmirNote}
     <table>
       <tr><td>🌧 Rainfall</td><td>${d.rainfall||'—'} mm/month</td></tr>
       <tr><td>🌡 Temperature</td><td>${d.temp||d.temperature||'—'}°C</td></tr>
