@@ -1,723 +1,120 @@
-/* ═══════════════════════════════════════════════════════════════
-   script.js — Water Security & Drought Management Dashboard
-   India | JalDrishti
-
-   NEW FEATURES ADDED:
-   1. Dark / Light Mode Toggle
-   2. Export CSV
-   3. Skeleton Loaders
-   4. Mobile Hamburger (improved)
-   5. Region Filter
-   6. Tooltip Info Modals on metric cards
-   7. Flashcard Hover Effect (back-face data via JS)
-═══════════════════════════════════════════════════════════════ */
-
+/* ═══════════════════════════════════════════════════════
+   script.js — JalDrishti v2.0
+   Water Security & Drought Intelligence Dashboard
+═══════════════════════════════════════════════════════ */
 'use strict';
 
-/* ────────────────────────────────────────────────────────────────
-   1. CONFIGURATION & CONSTANTS
-──────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────
+   CONFIG
+──────────────────────────────── */
 const CONFIG = {
-  OWM_API_KEY: 'YOUR_OPENWEATHERMAP_API_KEY',
-  OWM_BASE_URL: 'https://api.openweathermap.org/data/2.5/weather',
-  RAINFALL_EXTREME_THRESHOLD: 20,
-  RAINFALL_SEVERE_THRESHOLD:  40,
-  TEMP_EXTREME_THRESHOLD:     40,
-  TEMP_SEVERE_THRESHOLD:      36,
-  INDIA_GEOJSON_URL: 'https://raw.githubusercontent.com/india-in-data/india-states-2019/master/india_states.geojson',
+  OWM_API_KEY: 'YOUR_OPENWEATHERMAP_API_KEY', // ← Replace with your key
+  OWM_URL: 'https://api.openweathermap.org/data/2.5/weather',
+  RAIN_EXTREME: 20, RAIN_SEVERE: 40,
+  TEMP_EXTREME: 40, TEMP_SEVERE: 36,
+  GEOJSON_URL: 'https://raw.githubusercontent.com/geohacker/india/master/state/india_telengana.geojson',
 };
 
-const SEVERITY = {
-  NORMAL:   { label: 'Normal',   color: '#22c55e', fillOpacity: 0.35 },
-  MODERATE: { label: 'Moderate', color: '#facc15', fillOpacity: 0.50 },
-  SEVERE:   { label: 'Severe',   color: '#f97316', fillOpacity: 0.60 },
-  EXTREME:  { label: 'Extreme',  color: '#ef4444', fillOpacity: 0.70 },
-};
-
-/* ────────────────────────────────────────────────────────────────
-   2. SIMULATED DATA
-──────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────
+   SIMULATED DATA
+──────────────────────────────── */
 const STATE_DATA = {
   2025: {
-    'Rajasthan':       { rainfall: 15, temp: 42, reservoir: 28, groundwater: 45 },
-    'Gujarat':         { rainfall: 22, temp: 38, reservoir: 40, groundwater: 52 },
-    'Haryana':         { rainfall: 30, temp: 37, reservoir: 55, groundwater: 38 },
-    'Punjab':          { rainfall: 45, temp: 34, reservoir: 62, groundwater: 41 },
-    'Uttar Pradesh':   { rainfall: 50, temp: 36, reservoir: 58, groundwater: 35 },
-    'Madhya Pradesh':  { rainfall: 32, temp: 39, reservoir: 48, groundwater: 42 },
-    'Maharashtra':     { rainfall: 28, temp: 37, reservoir: 45, groundwater: 48 },
-    'Karnataka':       { rainfall: 60, temp: 33, reservoir: 72, groundwater: 28 },
-    'Andhra Pradesh':  { rainfall: 35, temp: 38, reservoir: 50, groundwater: 40 },
-    'Tamil Nadu':      { rainfall: 55, temp: 34, reservoir: 68, groundwater: 30 },
-    'Kerala':          { rainfall: 180, temp: 30, reservoir: 90, groundwater: 12 },
-    'Telangana':       { rainfall: 40, temp: 37, reservoir: 55, groundwater: 38 },
-    'Odisha':          { rainfall: 75, temp: 33, reservoir: 78, groundwater: 22 },
-    'West Bengal':     { rainfall: 90, temp: 32, reservoir: 80, groundwater: 20 },
-    'Bihar':           { rainfall: 65, temp: 35, reservoir: 70, groundwater: 28 },
-    'Jharkhand':       { rainfall: 70, temp: 33, reservoir: 74, groundwater: 25 },
-    'Chhattisgarh':    { rainfall: 68, temp: 34, reservoir: 72, groundwater: 26 },
-    'Uttarakhand':     { rainfall: 95, temp: 28, reservoir: 85, groundwater: 18 },
-    'Himachal Pradesh':{ rainfall: 100, temp: 22, reservoir: 88, groundwater: 16 },
-    'Assam':           { rainfall: 120, temp: 29, reservoir: 92, groundwater: 14 },
-    'Manipur':         { rainfall: 110, temp: 27, reservoir: 88, groundwater: 16 },
-    'Meghalaya':       { rainfall: 200, temp: 24, reservoir: 95, groundwater: 10 },
-    'Mizoram':         { rainfall: 160, temp: 25, reservoir: 93, groundwater: 12 },
-    'Nagaland':        { rainfall: 130, temp: 26, reservoir: 90, groundwater: 14 },
-    'Tripura':         { rainfall: 140, temp: 27, reservoir: 91, groundwater: 13 },
-    'Arunachal Pradesh':{ rainfall: 180, temp: 23, reservoir: 95, groundwater: 10 },
-    'Sikkim':          { rainfall: 150, temp: 20, reservoir: 92, groundwater: 12 },
-    'Goa':             { rainfall: 190, temp: 29, reservoir: 94, groundwater: 11 },
-    'Delhi':           { rainfall: 25, temp: 38, reservoir: 38, groundwater: 48 },
-    'Jammu and Kashmir':{ rainfall: 80, temp: 18, reservoir: 82, groundwater: 20 },
-    'Ladakh':          { rainfall: 12, temp: 10, reservoir: 40, groundwater: 55 },
-    // GeoJSON alternate name aliases
-    'Uttaranchal':     { rainfall: 95, temp: 28, reservoir: 85, groundwater: 18 },
-    'Orissa':          { rainfall: 75, temp: 33, reservoir: 78, groundwater: 22 },
-    'NCT of Delhi':    { rainfall: 25, temp: 38, reservoir: 38, groundwater: 48 },
+    'Rajasthan':        {rainfall:15,temperature:42,reservoir:28,groundwater:45},
+    'Gujarat':          {rainfall:22,temperature:38,reservoir:40,groundwater:52},
+    'Haryana':          {rainfall:30,temperature:37,reservoir:55,groundwater:38},
+    'Punjab':           {rainfall:45,temperature:34,reservoir:62,groundwater:41},
+    'Uttar Pradesh':    {rainfall:50,temperature:36,reservoir:58,groundwater:35},
+    'Madhya Pradesh':   {rainfall:32,temperature:39,reservoir:48,groundwater:42},
+    'Maharashtra':      {rainfall:28,temperature:37,reservoir:45,groundwater:48},
+    'Karnataka':        {rainfall:60,temperature:33,reservoir:72,groundwater:28},
+    'Andhra Pradesh':   {rainfall:35,temperature:38,reservoir:50,groundwater:40},
+    'Tamil Nadu':       {rainfall:55,temperature:34,reservoir:68,groundwater:30},
+    'Kerala':           {rainfall:180,temperature:30,reservoir:90,groundwater:12},
+    'Telangana':        {rainfall:40,temperature:37,reservoir:55,groundwater:38},
+    'Odisha':           {rainfall:75,temperature:33,reservoir:78,groundwater:22},
+    'West Bengal':      {rainfall:90,temperature:32,reservoir:80,groundwater:20},
+    'Bihar':            {rainfall:65,temperature:35,reservoir:70,groundwater:28},
+    'Jharkhand':        {rainfall:70,temperature:33,reservoir:74,groundwater:25},
+    'Chhattisgarh':     {rainfall:68,temperature:34,reservoir:72,groundwater:26},
+    'Uttarakhand':      {rainfall:95,temperature:28,reservoir:85,groundwater:18},
+    'Himachal Pradesh': {rainfall:100,temperature:22,reservoir:88,groundwater:16},
+    'Assam':            {rainfall:120,temperature:29,reservoir:92,groundwater:14},
+    'Goa':              {rainfall:190,temperature:29,reservoir:94,groundwater:11},
+    'Delhi':            {rainfall:25,temperature:38,reservoir:38,groundwater:48},
   },
   2024: {
-    'Rajasthan':       { rainfall: 12, temp: 43, reservoir: 22, groundwater: 50 },
-    'Gujarat':         { rainfall: 18, temp: 39, reservoir: 35, groundwater: 55 },
-    'Haryana':         { rainfall: 25, temp: 38, reservoir: 50, groundwater: 42 },
-    'Punjab':          { rainfall: 38, temp: 35, reservoir: 58, groundwater: 44 },
-    'Uttar Pradesh':   { rainfall: 44, temp: 37, reservoir: 52, groundwater: 38 },
-    'Madhya Pradesh':  { rainfall: 28, temp: 40, reservoir: 42, groundwater: 45 },
-    'Maharashtra':     { rainfall: 24, temp: 38, reservoir: 40, groundwater: 52 },
-    'Karnataka':       { rainfall: 52, temp: 34, reservoir: 66, groundwater: 32 },
-    'Andhra Pradesh':  { rainfall: 30, temp: 39, reservoir: 44, groundwater: 44 },
-    'Tamil Nadu':      { rainfall: 48, temp: 35, reservoir: 62, groundwater: 34 },
-    'Kerala':          { rainfall: 160, temp: 31, reservoir: 87, groundwater: 15 },
-    'Delhi':           { rainfall: 20, temp: 39, reservoir: 32, groundwater: 52 },
-    'Ladakh':          { rainfall: 10, temp: 11, reservoir: 35, groundwater: 58 },
+    'Rajasthan':        {rainfall:12,temperature:43,reservoir:22,groundwater:50},
+    'Gujarat':          {rainfall:18,temperature:39,reservoir:35,groundwater:55},
+    'Haryana':          {rainfall:25,temperature:38,reservoir:50,groundwater:42},
+    'Punjab':           {rainfall:38,temperature:35,reservoir:58,groundwater:44},
+    'Uttar Pradesh':    {rainfall:44,temperature:37,reservoir:52,groundwater:38},
+    'Madhya Pradesh':   {rainfall:28,temperature:40,reservoir:42,groundwater:45},
+    'Maharashtra':      {rainfall:24,temperature:38,reservoir:40,groundwater:52},
+    'Karnataka':        {rainfall:52,temperature:34,reservoir:66,groundwater:32},
+    'Andhra Pradesh':   {rainfall:30,temperature:39,reservoir:44,groundwater:44},
+    'Tamil Nadu':       {rainfall:48,temperature:35,reservoir:62,groundwater:34},
+    'Kerala':           {rainfall:160,temperature:31,reservoir:87,groundwater:15},
+    'Telangana':        {rainfall:35,temperature:38,reservoir:50,groundwater:42},
+    'Odisha':           {rainfall:68,temperature:34,reservoir:74,groundwater:26},
+    'West Bengal':      {rainfall:82,temperature:33,reservoir:76,groundwater:24},
+    'Bihar':            {rainfall:58,temperature:36,reservoir:65,groundwater:32},
+    'Jharkhand':        {rainfall:62,temperature:34,reservoir:68,groundwater:28},
+    'Chhattisgarh':     {rainfall:60,temperature:35,reservoir:68,groundwater:30},
+    'Uttarakhand':      {rainfall:88,temperature:29,reservoir:80,groundwater:22},
+    'Himachal Pradesh': {rainfall:92,temperature:23,reservoir:84,groundwater:19},
+    'Assam':            {rainfall:110,temperature:30,reservoir:88,groundwater:18},
+    'Goa':              {rainfall:180,temperature:30,reservoir:92,groundwater:13},
+    'Delhi':            {rainfall:20,temperature:39,reservoir:32,groundwater:52},
   },
   2023: {
-    'Rajasthan':       { rainfall: 18, temp: 41, reservoir: 32, groundwater: 42 },
-    'Gujarat':         { rainfall: 26, temp: 37, reservoir: 46, groundwater: 49 },
-    'Kerala':          { rainfall: 190, temp: 29, reservoir: 92, groundwater: 10 },
-    'Delhi':           { rainfall: 28, temp: 37, reservoir: 42, groundwater: 44 },
-    'Ladakh':          { rainfall: 14, temp: 9,  reservoir: 44, groundwater: 52 },
+    'Rajasthan':        {rainfall:18,temperature:41,reservoir:32,groundwater:42},
+    'Gujarat':          {rainfall:26,temperature:37,reservoir:46,groundwater:49},
+    'Haryana':          {rainfall:34,temperature:36,reservoir:60,groundwater:36},
+    'Punjab':           {rainfall:50,temperature:33,reservoir:66,groundwater:38},
+    'Uttar Pradesh':    {rainfall:55,temperature:35,reservoir:62,groundwater:32},
+    'Madhya Pradesh':   {rainfall:36,temperature:38,reservoir:52,groundwater:40},
+    'Maharashtra':      {rainfall:32,temperature:36,reservoir:50,groundwater:44},
+    'Karnataka':        {rainfall:65,temperature:32,reservoir:76,groundwater:25},
+    'Andhra Pradesh':   {rainfall:40,temperature:37,reservoir:54,groundwater:36},
+    'Tamil Nadu':       {rainfall:60,temperature:33,reservoir:70,groundwater:27},
+    'Kerala':           {rainfall:190,temperature:29,reservoir:92,groundwater:10},
+    'Telangana':        {rainfall:44,temperature:36,reservoir:58,groundwater:35},
+    'Odisha':           {rainfall:80,temperature:32,reservoir:80,groundwater:20},
+    'West Bengal':      {rainfall:96,temperature:31,reservoir:82,groundwater:18},
+    'Bihar':            {rainfall:70,temperature:34,reservoir:74,groundwater:26},
+    'Jharkhand':        {rainfall:75,temperature:32,reservoir:78,groundwater:22},
+    'Chhattisgarh':     {rainfall:72,temperature:33,reservoir:76,groundwater:24},
+    'Uttarakhand':      {rainfall:100,temperature:27,reservoir:87,groundwater:16},
+    'Himachal Pradesh': {rainfall:105,temperature:21,reservoir:90,groundwater:15},
+    'Assam':            {rainfall:125,temperature:28,reservoir:93,groundwater:13},
+    'Goa':              {rainfall:195,temperature:28,reservoir:95,groundwater:10},
+    'Delhi':            {rainfall:28,temperature:37,reservoir:42,groundwater:44},
   }
 };
 
 const MONTHLY_RAINFALL = {
-  labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-  'All India': { actual: [12,10,14,18,30,110,285,265,190,80,32,16], normal: [15,13,12,15,28,120,280,270,195,85,30,18] },
-  'Rajasthan': { actual: [4,3,4,5,10,30,85,90,50,15,6,3],           normal: [5,4,4,5,12,35,95,100,55,18,7,4] },
-  'Maharashtra':{ actual: [5,4,8,15,25,130,310,290,185,80,25,8],    normal: [6,5,9,16,28,140,320,295,195,90,28,10] },
-  'Kerala':    { actual: [35,28,48,95,210,450,560,430,295,260,160,65], normal: [32,26,44,90,205,440,550,420,285,255,155,60] },
-  'Punjab':    { actual: [30,28,22,15,20,55,175,190,95,22,12,24],   normal: [35,30,25,17,22,60,185,200,100,25,14,28] },
+  labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  'All India': {actual:[12,10,14,18,30,110,285,265,190,80,32,16], normal:[15,13,12,15,28,120,280,270,195,85,30,18]},
+  'Rajasthan': {actual:[4,3,4,5,10,30,85,90,50,15,6,3], normal:[5,4,4,5,12,35,95,100,55,18,7,4]},
+  'Maharashtra':{actual:[5,4,8,15,25,130,310,290,185,80,25,8], normal:[6,5,9,16,28,140,320,295,195,90,28,10]},
+  'Kerala':    {actual:[35,28,48,95,210,450,560,430,295,260,160,65], normal:[32,26,44,90,205,440,550,420,285,255,155,60]},
+  'Punjab':    {actual:[30,28,22,15,20,55,175,190,95,22,12,24], normal:[35,30,25,17,22,60,185,200,100,25,14,28]},
 };
 
 const RESERVOIR_DATA = {
-  labels: ['Indirasagar','Nagarjunasagar','Bhakra','Hirakud','Srisailam','Koyna','Ukai','Tungabhadra','Bansagar','Rana Pratap'],
-  current:  [7.4,5.9,7.0,3.9,8.6,2.8,4.5,2.1,3.6,1.2],
-  capacity: [12.2,11.5,9.9,8.1,11.1,2.8,8.5,3.6,5.4,2.9],
-};
-
-const GROUNDWATER_DATA = {
-  labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-  depth:  [18,19,20,22,24,25,21,18,16,15,16,17],
-};
-
-const WATER_USAGE = {
-  labels: ['Agriculture','Domestic','Industrial','Energy','Environment'],
-  data:   [78,8,7,4,3],
-  colors: ['#0ea5e9','#22c55e','#f97316','#facc15','#8b5cf6'],
+  labels:['Indirasagar','Nagarjunasagar','Bhakra','Hirakud','Srisailam','Koyna','Ukai','Tungabhadra','Bansagar','Rana Pratap'],
+  current:[7.4,5.9,7.0,3.9,8.6,2.8,4.5,2.1,3.6,1.2],
+  capacity:[12.2,11.5,9.9,8.1,11.1,2.8,8.5,3.6,5.4,2.9],
 };
 
 const HEATMAP_POINTS = [
   [26.91,70.90,0.9],[25.33,74.63,0.85],[27.02,74.22,0.88],[28.01,73.31,0.92],[26.45,73.10,0.87],
-  [23.22,72.65,0.7],[22.30,70.78,0.75],[23.85,72.10,0.68],
-  [29.05,76.08,0.65],[28.45,77.00,0.60],[28.65,77.22,0.72],
-  [20.93,77.75,0.70],[20.00,76.83,0.65],[21.15,79.09,0.68],
-  [15.82,78.33,0.60],[17.38,78.49,0.55],[16.50,80.63,0.58],
-  [14.46,77.31,0.55],[15.35,75.14,0.52],[11.12,78.65,0.50],[10.79,79.13,0.48],
-  [26.85,80.91,0.55],[27.57,80.08,0.52],
-  [15.33,74.99,0.1],[8.51,76.96,0.05],[11.59,76.27,0.1],
-  [25.47,90.36,0.05],[27.10,93.62,0.04],[22.98,88.45,0.08],
+  [23.22,72.65,0.7],[22.30,70.78,0.75],[29.05,76.08,0.65],[28.65,77.22,0.72],
+  [20.93,77.75,0.70],[20.00,76.83,0.65],[17.38,78.49,0.55],[16.50,80.63,0.58],
+  [14.46,77.31,0.55],[11.12,78.65,0.50],[26.85,80.91,0.55],
+  [15.33,74.99,0.1],[8.51,76.96,0.05],[25.47,90.36,0.05],[22.98,88.45,0.08],
 ];
-
-const SEED_ALERTS = [
-  { severity:'extreme',  state:'Rajasthan',   message:'Extreme drought — rainfall 15mm (deficit 70%)',            time:'2 hours ago'  },
-  { severity:'severe',   state:'Gujarat',     message:'Severe water stress — reservoir at 40% capacity',         time:'5 hours ago'  },
-  { severity:'moderate', state:'Maharashtra', message:'Moderate drought — groundwater depth +18% above normal',  time:'12 hours ago' },
-  { severity:'severe',   state:'Haryana',     message:'Severe heat wave — temperature 39°C (3°C above normal)',  time:'1 day ago'    },
-  { severity:'normal',   state:'Kerala',      message:'Normal conditions — above-average rainfall recorded',      time:'1 day ago'    },
-];
-
-const POLICY_DATA = [
-  { icon:'fas fa-hand-holding-water', title:'National Drought Mitigation Scheme (NDMS)',  desc:'Centrally-sponsored scheme for drought relief, crop insurance, and water harvesting in drought-prone districts.',    items:['₹2,250 crore annual outlay','Covers 250+ drought-prone districts','Integrated with MGNREGS'] },
-  { icon:'fas fa-tint',               title:'Jal Jeevan Mission (JJM)',                   desc:'Flagship program to provide functional household tap connections to every rural household by 2024.',                  items:['19+ crore connections delivered','Safe drinking water focus','₹3.6 lakh crore investment'] },
-  { icon:'fas fa-water',              title:'Atal Bhujal Yojana (ABY)',                   desc:'Groundwater management in water-stressed states through community-led conservation and demand-side management.',       items:['7 states covered','Community-driven approach','Focus on over-exploited aquifers'] },
-  { icon:'fas fa-seedling',           title:'Pradhan Mantri Fasal Bima Yojana (PMFBY)',   desc:'Comprehensive crop insurance scheme protecting farmers against crop loss due to drought, flood, and other perils.',   items:['5.5 crore farmers covered','Subsidized premium rates','₹1.4 lakh crore claims settled'] },
-  { icon:'fas fa-chart-pie',          title:'Water Allocation Policy (WAP 2022)',          desc:'Inter-state and intra-state water sharing framework under the National Water Framework Law principles.',             items:['Basin-level water budgeting','Priority: drinking > irrigation','Groundwater regulation boards'] },
-  { icon:'fas fa-dam',                title:'Reservoir Management Guidelines',             desc:'CWC-mandated guidelines for real-time flood forecasting, storage optimization, and drought contingency protocols.',  items:['Real-time telemetry at 143 reservoirs','Dynamic rule curves','Integrated flood–drought management'] },
-];
-
-const SDG_INDICATORS = [
-  { label:'Safe drinking water access (rural)',       value:76, target:100 },
-  { label:'Sanitation & open defecation free',        value:89, target:100 },
-  { label:'Water-use efficiency improvement',         value:42, target:100 },
-  { label:'Integrated water resources management',    value:55, target:100 },
-  { label:'Transboundary water cooperation',          value:38, target:100 },
-];
-
-/* FEATURE 5: Region → city mapping */
-const REGION_CITIES = {
-  all:       ['Delhi','Mumbai','Chennai','Kolkata','Bengaluru','Hyderabad','Ahmedabad','Jaipur','Lucknow','Patna'],
-  north:     ['Delhi','Jaipur','Lucknow','Chandigarh'],
-  south:     ['Chennai','Bengaluru','Hyderabad','Kochi'],
-  east:      ['Kolkata','Patna','Bhubaneswar'],
-  west:      ['Mumbai','Ahmedabad','Pune'],
-  central:   ['Bhopal','Nagpur','Raipur'],
-  northeast: ['Guwahati','Shillong','Imphal'],
-};
-
-/* FEATURE 6: Metric tooltip descriptions */
-const METRIC_TOOLTIPS = {
-  rainfall: {
-    title: 'Monthly Rainfall',
-    icon: '🌧',
-    desc: 'Total rainfall accumulated during the current month at the selected monitoring location. Measured in millimetres (mm). Compared against the 30-year IMD normal to determine departure from baseline.',
-    meta: [
-      ['Source', 'IMD / OpenWeatherMap'],
-      ['Normal (All India)', '70 mm/month'],
-      ['Extreme threshold', '< 20 mm/month'],
-      ['Severe threshold', '< 40 mm/month'],
-    ],
-  },
-  temperature: {
-    title: 'Ambient Temperature',
-    icon: '🌡',
-    desc: 'Current mean daily temperature (°C) at the monitoring station. Elevated temperatures compound drought stress by increasing evapotranspiration and reducing soil moisture retention.',
-    meta: [
-      ['Source', 'OpenWeatherMap API'],
-      ['Severe threshold', '> 36 °C'],
-      ['Extreme threshold', '> 40 °C'],
-      ['Seasonal avg', '28–35 °C (kharif)'],
-    ],
-  },
-  reservoir: {
-    title: 'Reservoir Level',
-    icon: '💧',
-    desc: 'Average percentage of live storage across all major national reservoirs monitored by CWC. Below 40% indicates critical risk to irrigation and drinking water supply.',
-    meta: [
-      ['Source', 'CWC Weekly Bulletin'],
-      ['Critical level', '< 40% capacity'],
-      ['Total monitored', '143 reservoirs'],
-      ['Total capacity', '~253 BCM'],
-    ],
-  },
-  drought: {
-    title: 'Drought Severity Index',
-    icon: '⚠️',
-    desc: 'Composite drought severity classification derived from the Palmer Drought Severity Index adapted by IMD. Combines rainfall deficit, temperature anomaly, and soil moisture data.',
-    meta: [
-      ['Classification', 'IMD Standard'],
-      ['Normal', 'Rainfall ≥ 40mm & Temp ≤ 36°C'],
-      ['Moderate', 'Rainfall 20–40mm or Temp 36–40°C'],
-      ['Extreme', 'Rainfall < 20mm & Temp > 40°C'],
-    ],
-  },
-  population: {
-    title: 'Population at Risk',
-    icon: '👥',
-    desc: 'Estimated number of people (millions) in affected districts experiencing water stress. Derived by overlaying drought severity maps with census population density data.',
-    meta: [
-      ['Basis', 'Census 2021 + Drought Map'],
-      ['Risk factor', 'Water access < 50 LPCD'],
-      ['Update frequency', 'Weekly'],
-      ['Coverage', 'All 766 districts'],
-    ],
-  },
-  agri: {
-    title: 'Agricultural Impact',
-    icon: '🌾',
-    desc: 'Percentage of total sown crop area currently under water stress or drought conditions. Derived from NDVI satellite imagery and district-level crop reports from the Agriculture Ministry.',
-    meta: [
-      ['Source', 'ISRO NRSC / Agri Ministry'],
-      ['Primary crop', 'Kharif (June–Oct)'],
-      ['Stress indicator', 'NDVI < 0.3'],
-      ['Critical threshold', '> 50% area'],
-    ],
-  },
-};
-
-/* ────────────────────────────────────────────────────────────────
-   3. UTILITY FUNCTIONS
-──────────────────────────────────────────────────────────────── */
-function getDroughtSeverity(rainfall, temp) {
-  if (rainfall < CONFIG.RAINFALL_EXTREME_THRESHOLD && temp > CONFIG.TEMP_EXTREME_THRESHOLD) return 'EXTREME';
-  if (rainfall < CONFIG.RAINFALL_EXTREME_THRESHOLD || temp > CONFIG.TEMP_EXTREME_THRESHOLD)  return 'SEVERE';
-  if (rainfall < CONFIG.RAINFALL_SEVERE_THRESHOLD  || temp > CONFIG.TEMP_SEVERE_THRESHOLD)   return 'MODERATE';
-  return 'NORMAL';
-}
-function getSeverityBadgeClass(sev) {
-  return { NORMAL:'badge-normal', MODERATE:'badge-moderate', SEVERE:'badge-severe', EXTREME:'badge-extreme' }[sev] || 'badge-normal';
-}
-function getSeverityColor(sev) {
-  return { NORMAL:'#22c55e', MODERATE:'#facc15', SEVERE:'#f97316', EXTREME:'#ef4444' }[sev] || '#22c55e';
-}
-function animateCounter(el, target, duration = 1500) {
-  const start = performance.now();
-  const update = (now) => {
-    const progress = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    el.textContent = Math.round(eased * target);
-    if (progress < 1) requestAnimationFrame(update);
-    else el.textContent = target;
-  };
-  requestAnimationFrame(update);
-}
-function showToast(message, duration = 3000) {
-  const toast = document.getElementById('toast');
-  document.getElementById('toastMessage').textContent = message;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), duration);
-}
-function formatTime() {
-  return new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-}
-
-/* ────────────────────────────────────────────────────────────────
-   FEATURE 1: DARK / LIGHT MODE TOGGLE
-──────────────────────────────────────────────────────────────── */
-(function initDarkMode() {
-  const btn  = document.getElementById('darkModeBtn');
-  const icon = document.getElementById('darkModeIcon');
-  const html = document.documentElement;
-
-  // Load saved preference
-  const saved = localStorage.getItem('jaldrishti_theme') || 'dark';
-  html.setAttribute('data-theme', saved);
-  icon.className = saved === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-
-  btn.addEventListener('click', () => {
-    const current = html.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
-    icon.className = next === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-    localStorage.setItem('jaldrishti_theme', next);
-    showToast(next === 'light' ? '☀️ Light mode enabled' : '🌙 Dark mode enabled');
-  });
-})();
-
-/* ────────────────────────────────────────────────────────────────
-   FEATURE 2: EXPORT CSV
-──────────────────────────────────────────────────────────────── */
-function exportMetricsCSV() {
-  const sev = getDroughtSeverity(currentMetrics.rainfall, currentMetrics.temperature);
-  const city = document.getElementById('citySelect').value;
-  const rows = [
-    ['Metric','Value','Unit','Status'],
-    ['City', city, '—', '—'],
-    ['Export Date', new Date().toLocaleString('en-IN'), '—', '—'],
-    ['Monthly Rainfall', currentMetrics.rainfall, 'mm', sev],
-    ['Temperature', currentMetrics.temperature, '°C', sev],
-    ['Reservoir Level', currentMetrics.reservoir, '%', sev],
-    ['Drought Severity', SEVERITY[sev].label, '—', sev],
-    ['Population at Risk', currentMetrics.population, 'Millions', sev],
-    ['Agricultural Impact', currentMetrics.agri, '%', sev],
-  ];
-
-  // Append state data for 2025
-  rows.push([]);
-  rows.push(['State-wise Data (2025)','Rainfall (mm)','Temp (°C)','Reservoir (%)','Groundwater (m)','Drought Severity']);
-  Object.entries(STATE_DATA[2025]).forEach(([state, d]) => {
-    const s = getDroughtSeverity(d.rainfall, d.temp || d.temperature);
-    rows.push([state, d.rainfall, d.temp || d.temperature, d.reservoir, d.groundwater, SEVERITY[s].label]);
-  });
-
-  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `JalDrishti_Report_${city}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('📊 CSV report downloaded!');
-}
-
-document.getElementById('exportCsvBtn').addEventListener('click', exportMetricsCSV);
-
-/* ────────────────────────────────────────────────────────────────
-   4. NAVBAR & SCROLL BEHAVIOR (FEATURE 4: improved mobile)
-──────────────────────────────────────────────────────────────── */
-(function initNavbar() {
-  const navbar    = document.getElementById('navbar');
-  const hamburger = document.getElementById('hamburger');
-  const navLinks  = document.getElementById('navLinks');
-
-  window.addEventListener('scroll', () => navbar.classList.toggle('scrolled', window.scrollY > 60));
-
-  hamburger.addEventListener('click', () => {
-    navLinks.classList.toggle('open');
-    hamburger.classList.toggle('active');
-  });
-
-  navLinks.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-      navLinks.classList.remove('open');
-      hamburger.classList.remove('active');
-    });
-  });
-
-  document.querySelectorAll('.smooth-scroll, .nav-links a, .footer-links a').forEach(link => {
-    link.addEventListener('click', (e) => {
-      const href = link.getAttribute('href');
-      if (href && href.startsWith('#')) {
-        e.preventDefault();
-        const target = document.querySelector(href);
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-  });
-})();
-
-/* ────────────────────────────────────────────────────────────────
-   5. HERO COUNTER ANIMATION
-──────────────────────────────────────────────────────────────── */
-(function initHeroCounters() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        animateCounter(el, parseInt(el.dataset.target, 10), 2000);
-        observer.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-  document.querySelectorAll('.h-num').forEach(c => observer.observe(c));
-})();
-
-/* ────────────────────────────────────────────────────────────────
-   6. METRIC CARDS + FEATURE 3 (Skeletons) + FEATURE 6 (Tooltips)
-     + FEATURE 7 (Flashcard hover back-face)
-──────────────────────────────────────────────────────────────── */
-let currentMetrics = {
-  rainfall: 45, temperature: 36, reservoir: 52,
-  drought: null, population: 34, agri: 28,
-};
-
-const METRIC_CONFIGS = [
-  { id:'rainfall',    icon:'fas fa-cloud-rain',         label:'Monthly Rainfall',      unit:'mm', sub:'vs. 70mm normal',              accent:'#0ea5e9', maxBar:200, getVal: m => m.rainfall },
-  { id:'temperature', icon:'fas fa-thermometer-half',   label:'Temperature',           unit:'°C', sub:'Current ambient temperature',  accent:'#f97316', maxBar:50,  getVal: m => m.temperature },
-  { id:'reservoir',   icon:'fas fa-water',              label:'Reservoir Level',       unit:'%',  sub:'Average national storage',     accent:'#22c55e', maxBar:100, getVal: m => m.reservoir },
-  { id:'drought',     icon:'fas fa-exclamation-triangle',label:'Drought Severity',     unit:'',   sub:'Based on IMD thresholds',      accent:'#ef4444', maxBar:100, getVal: m => ({ NORMAL:20, MODERATE:50, SEVERE:75, EXTREME:100 }[getDroughtSeverity(m.rainfall, m.temperature)]) },
-  { id:'population',  icon:'fas fa-users',              label:'Population Affected',   unit:'M',  sub:'Estimated millions at risk',   accent:'#facc15', maxBar:500, getVal: m => m.population },
-  { id:'agri',        icon:'fas fa-wheat-awn',          label:'Agricultural Impact',   unit:'%',  sub:'Crop area under water stress', accent:'#8b5cf6', maxBar:100, getVal: m => m.agri },
-];
-
-/* FEATURE 7: Build back-face content for each metric */
-function buildBackFaceHTML(cfg, metrics) {
-  const sev  = getDroughtSeverity(metrics.rainfall, metrics.temperature);
-  const val  = cfg.getVal(metrics);
-  const tip  = METRIC_TOOLTIPS[cfg.id];
-
-  let stats = [];
-  if (cfg.id === 'rainfall') {
-    const normal = 70;
-    const deficit = Math.round(((normal - metrics.rainfall) / normal) * 100);
-    stats = [
-      { label:'vs. 30yr normal', val: `${deficit > 0 ? '-' : '+'}${Math.abs(deficit)}%` },
-      { label:'Monsoon month avg', val: '285 mm' },
-      { label:'Status', val: metrics.rainfall < 40 ? '⚠ Below normal' : '✓ Near normal' },
-    ];
-  } else if (cfg.id === 'temperature') {
-    stats = [
-      { label:'Heat index', val: `${(metrics.temperature * 1.08).toFixed(0)}°C feels` },
-      { label:'Monthly avg', val: '32–36 °C' },
-      { label:'Anomaly', val: `+${(metrics.temperature - 32).toFixed(1)}°C` },
-    ];
-  } else if (cfg.id === 'reservoir') {
-    stats = [
-      { label:'Absolute storage', val: `~${(metrics.reservoir * 2.5).toFixed(0)} BCM` },
-      { label:'Trend', val: metrics.reservoir < 50 ? '📉 Declining' : '📈 Stable' },
-      { label:'Critical level', val: '40%' },
-    ];
-  } else if (cfg.id === 'drought') {
-    stats = [
-      { label:'IMD class', val: SEVERITY[sev].label },
-      { label:'Rainfall deficit', val: `${Math.max(0, 70 - metrics.rainfall)} mm` },
-      { label:'States affected', val: sev === 'EXTREME' ? '8+' : sev === 'SEVERE' ? '5' : '3' },
-    ];
-  } else if (cfg.id === 'population') {
-    stats = [
-      { label:'Acute water stress', val: `~${Math.round(metrics.population * 0.3)}M` },
-      { label:'Districts affected', val: `${Math.round(metrics.population / 2)}+` },
-      { label:'Urban vs rural', val: '30% / 70%' },
-    ];
-  } else if (cfg.id === 'agri') {
-    stats = [
-      { label:'Kharif exposure', val: `${Math.round(metrics.agri * 1.1)}%` },
-      { label:'Crop loss est.', val: `₹${Math.round(metrics.agri * 120)}Cr` },
-      { label:'Primary crop', val: 'Rice, Pulses' },
-    ];
-  }
-
-  const rows = stats.map(s => `<div class="back-stat"><span>${s.label}</span><span>${s.val}</span></div>`).join('');
-  const tipText = tip ? `<p class="back-tip">ⓘ ${tip.desc.slice(0, 90)}…</p>` : '';
-
-  return `
-    <div class="back-title">${cfg.label} — Detail</div>
-    ${rows}
-    ${tipText}
-  `;
-}
-
-function renderMetricCards(metrics) {
-  const grid = document.getElementById('metricsGrid');
-  // FEATURE 3: Remove skeletons / clear
-  grid.innerHTML = '';
-
-  const sev = getDroughtSeverity(metrics.rainfall, metrics.temperature);
-  const sevColor = getSeverityColor(sev);
-
-  METRIC_CONFIGS.forEach(cfg => {
-    const val = cfg.getVal(metrics);
-    let displayVal, badge;
-
-    if (cfg.id === 'drought') {
-      displayVal = SEVERITY[sev].label;
-      badge = `<span class="metric-badge ${getSeverityBadgeClass(sev)}">${sev}</span>`;
-    } else {
-      displayVal = typeof val === 'number' ? val.toFixed(val % 1 !== 0 ? 1 : 0) : val;
-      badge = `<span class="metric-badge badge-normal">LIVE</span>`;
-    }
-
-    const fillPct = cfg.id === 'drought' ? val : Math.min((val / cfg.maxBar) * 100, 100);
-    const fillColor = cfg.id === 'drought' ? sevColor : cfg.accent;
-
-    const card = document.createElement('div');
-    card.className = 'metric-card fade-in';
-    card.style.setProperty('--accent', fillColor);
-
-    // FEATURE 7: card-front + card-back structure
-    card.innerHTML = `
-      <!-- FEATURE 6: Info button -->
-      <button class="metric-info-btn" data-metric="${cfg.id}" title="Learn more">
-        <i class="fas fa-info"></i>
-      </button>
-
-      <!-- Front face -->
-      <div class="card-front">
-        <div class="metric-card-top">
-          <div class="metric-icon"><i class="${cfg.icon}"></i></div>
-          ${badge}
-        </div>
-        <div class="metric-label">${cfg.label}</div>
-        <div class="metric-value" id="metric-${cfg.id}">
-          ${cfg.id === 'drought' ? displayVal : '0'}${cfg.unit}
-        </div>
-        <div class="metric-sub">${cfg.sub}</div>
-        <div class="metric-bar">
-          <div class="metric-bar-fill" style="width:0%;background:${fillColor}" data-fill="${fillPct}"></div>
-        </div>
-      </div>
-
-      <!-- FEATURE 7: Back face (revealed on hover) -->
-      <div class="card-back">
-        ${buildBackFaceHTML(cfg, metrics)}
-      </div>
-    `;
-
-    grid.appendChild(card);
-  });
-
-  // Animate values and bars
-  requestAnimationFrame(() => {
-    grid.querySelectorAll('.metric-card').forEach((card, i) => {
-      const cfg = METRIC_CONFIGS[i];
-      const val = cfg.getVal(metrics);
-
-      if (cfg.id !== 'drought' && typeof val === 'number') {
-        const el = card.querySelector('.metric-value');
-        const unit = cfg.unit;
-        let count = 0;
-        const target = Math.round(val);
-        const duration = 1200;
-        const start = performance.now();
-        const tick = (now) => {
-          const p = Math.min((now - start) / duration, 1);
-          const e = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(e * target) + unit;
-          if (p < 1) requestAnimationFrame(tick);
-          else el.textContent = target + unit;
-        };
-        requestAnimationFrame(tick);
-      }
-
-      setTimeout(() => {
-        const fill = card.querySelector('.metric-bar-fill');
-        if (fill) fill.style.width = fill.dataset.fill + '%';
-      }, 100 + i * 80);
-
-      setTimeout(() => card.classList.add('visible'), 50 + i * 80);
-    });
-  });
-
-  // FEATURE 6: Wire up tooltip info buttons
-  grid.querySelectorAll('.metric-info-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const metricId = btn.dataset.metric;
-      openTooltipModal(metricId);
-    });
-  });
-}
-
-/* FEATURE 3: Show skeleton while loading */
-function showSkeletons() {
-  const grid = document.getElementById('metricsGrid');
-  grid.innerHTML = '';
-  for (let i = 0; i < 6; i++) {
-    const sk = document.createElement('div');
-    sk.className = 'metric-skeleton';
-    grid.appendChild(sk);
-  }
-}
-
-/* FEATURE 6: Open tooltip info modal */
-function openTooltipModal(metricId) {
-  const tip = METRIC_TOOLTIPS[metricId];
-  if (!tip) return;
-
-  document.getElementById('tooltipModalIcon').textContent = tip.icon;
-  document.getElementById('tooltipModalTitle').textContent = tip.title;
-  document.getElementById('tooltipModalDesc').textContent = tip.desc;
-
-  const meta = document.getElementById('tooltipModalMeta');
-  meta.innerHTML = tip.meta.map(([k, v]) =>
-    `<div class="tooltip-meta-row"><span>${k}</span><span>${v}</span></div>`
-  ).join('');
-
-  document.getElementById('tooltipModal').classList.add('active');
-}
-
-document.getElementById('tooltipModalClose').addEventListener('click', () => {
-  document.getElementById('tooltipModal').classList.remove('active');
-});
-document.getElementById('tooltipModal').addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) e.currentTarget.classList.remove('active');
-});
-
-/* FEATURE 5: Region Filter — populates city dropdown */
-document.getElementById('regionFilter').addEventListener('change', (e) => {
-  const region = e.target.value;
-  const cities = REGION_CITIES[region] || REGION_CITIES.all;
-  const select = document.getElementById('citySelect');
-
-  select.innerHTML = cities.map(c => `<option value="${c}">${c}</option>`).join('');
-
-  // Auto-fetch for first city in region
-  fetchWeatherData(cities[0]);
-  showToast(`🗺 Showing cities in ${region === 'all' ? 'All India' : region.charAt(0).toUpperCase() + region.slice(1)} India`);
-});
-
-/* ────────────────────────────────────────────────────────────────
-   7. WEATHER API INTEGRATION
-──────────────────────────────────────────────────────────────── */
-async function fetchWeatherData(city) {
-  const statusEl = document.getElementById('apiStatus');
-  const btn = document.getElementById('fetchWeatherBtn');
-
-  // FEATURE 3: Show skeletons while fetching
-  showSkeletons();
-
-  btn.classList.add('loading');
-  statusEl.textContent = `Fetching data for ${city}...`;
-  statusEl.className = 'api-status';
-
-  const url = `${CONFIG.OWM_BASE_URL}?q=${encodeURIComponent(city)},IN&appid=${CONFIG.OWM_API_KEY}&units=metric`;
-
-  try {
-    const response = await fetch(url);
-    if (response.status === 401) throw new Error('Invalid API key. Using simulated data.');
-    if (!response.ok) throw new Error(`API error ${response.status}`);
-
-    const data = await response.json();
-    const rain1h = (data.rain && data.rain['1h']) ? data.rain['1h'] : 0;
-
-    currentMetrics.rainfall    = Math.round(rain1h * 720) || Math.floor(Math.random() * 60) + 20;
-    currentMetrics.temperature = Math.round(data.main.temp);
-    currentMetrics.reservoir   = Math.max(20, Math.min(95, data.main.humidity));
-    currentMetrics.population  = Math.round(30 + Math.random() * 100);
-    currentMetrics.agri        = Math.round(20 + Math.random() * 50);
-
-    statusEl.textContent = `✓ Live data loaded for ${city} at ${formatTime()}`;
-    statusEl.className = 'api-status success';
-
-  } catch (err) {
-    console.warn('OWM API error — using simulated data:', err.message);
-    currentMetrics.rainfall    = Math.floor(Math.random() * 80) + 15;
-    currentMetrics.temperature = Math.floor(Math.random() * 12) + 30;
-    currentMetrics.reservoir   = Math.floor(Math.random() * 50) + 30;
-    currentMetrics.population  = Math.round(20 + Math.random() * 80);
-    currentMetrics.agri        = Math.round(15 + Math.random() * 45);
-
-    statusEl.textContent = `⚠ Using simulated data (${err.message})`;
-    statusEl.className = 'api-status error';
-  } finally {
-    btn.classList.remove('loading');
-    // Small delay so skeleton shimmer is visible for a beat
-    setTimeout(() => {
-      renderMetricCards(currentMetrics);
-      updateAlertStatus(currentMetrics);
-      checkExtremeDrought(currentMetrics);
-    }, 400);
-  }
-}
-
-document.getElementById('fetchWeatherBtn').addEventListener('click', () => {
-  fetchWeatherData(document.getElementById('citySelect').value);
-});
-document.getElementById('citySelect').addEventListener('change', () => {
-  fetchWeatherData(document.getElementById('citySelect').value);
-});
-
-/* ────────────────────────────────────────────────────────────────
-   8. LEAFLET MAP
-──────────────────────────────────────────────────────────────── */
-let map, geoJsonLayer, heatLayer;
-let currentYear = 2025;
-
-function initMap() {
-  map = L.map('indiaMap', { center:[22.5,82.0], zoom:5, minZoom:4, maxZoom:10 });
-
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution:'&copy; OSM &copy; CARTO', subdomains:'abcd', maxZoom:19,
-  }).addTo(map);
-
-  loadGeoJSON(currentYear);
-  addHeatmap();
-
-  document.getElementById('yearSelect').addEventListener('change', (e) => {
-    currentYear = parseInt(e.target.value, 10);
-    loadGeoJSON(currentYear);
-  });
-  document.getElementById('heatmapToggle').addEventListener('change', (e) => {
-    e.target.checked ? heatLayer.addTo(map) : map.removeLayer(heatLayer);
-  });
-  document.getElementById('choroplethToggle').addEventListener('change', (e) => {
-    if (geoJsonLayer) e.target.checked ? geoJsonLayer.addTo(map) : map.removeLayer(geoJsonLayer);
-  });
-}
-
-function loadGeoJSON(year) {
-  const data = STATE_DATA[year] || STATE_DATA[2025];
-  if (geoJsonLayer) map.removeLayer(geoJsonLayer);
-
-  fetch(CONFIG.INDIA_GEOJSON_URL)
-    .then(r => r.json())
-    .then(geojson => {
-      geoJsonLayer = L.geoJSON(geojson, {
-        style: feature => styleFeature(feature, data),
-        onEachFeature: (feature, layer) => bindPopup(feature, layer, data),
-      }).addTo(map);
-    })
-    .catch(() => renderStateFallbackMarkers(data));
-}
 
 const STATE_CENTROIDS = {
   'Rajasthan':[26.45,73.10],'Gujarat':[22.30,71.19],'Haryana':[29.06,76.09],
@@ -729,350 +126,947 @@ const STATE_CENTROIDS = {
   'Himachal Pradesh':[31.10,77.17],'Assam':[26.20,92.93],'Delhi':[28.65,77.22],'Goa':[15.30,74.12],
 };
 
-function renderStateFallbackMarkers(data) {
-  Object.entries(STATE_CENTROIDS).forEach(([state, latlng]) => {
-    const d = data[state] || { rainfall:50, temp:32 };
-    const sev = getDroughtSeverity(d.rainfall, d.temp || d.temperature);
-    L.circleMarker(latlng, { radius:14, fillColor:getSeverityColor(sev), color:'#1e3a4a', weight:1.5, opacity:1, fillOpacity:0.75 })
-      .bindPopup(buildPopupHTML(state, d, sev))
-      .addTo(map);
+const SEED_ALERTS = [
+  {sev:'extreme', state:'Rajasthan',   msg:'Extreme drought — rainfall 15mm (deficit 70%)',        time:'2h ago'},
+  {sev:'severe',  state:'Gujarat',     msg:'Severe water stress — reservoir at 40% capacity',       time:'5h ago'},
+  {sev:'moderate',state:'Maharashtra', msg:'Moderate drought — groundwater depth +18% above normal',time:'12h ago'},
+  {sev:'severe',  state:'Haryana',     msg:'Severe heat wave — temperature 39°C (+3° above normal)',time:'1d ago'},
+  {sev:'normal',  state:'Kerala',      msg:'Normal conditions — above-average rainfall recorded',    time:'1d ago'},
+];
+
+const POLICY_DATA = [
+  {icon:'fas fa-hand-holding-water',title:'National Drought Mitigation Scheme',desc:'Centrally-sponsored scheme for drought relief, crop insurance & water harvesting.',items:['₹2,250 crore annual outlay','250+ drought-prone districts','Integrated with MGNREGS']},
+  {icon:'fas fa-tint',title:'Jal Jeevan Mission (JJM)',desc:'Flagship program to provide functional household tap connections to every rural household.',items:['19+ crore connections delivered','Safe drinking water focus','₹3.6 lakh crore investment']},
+  {icon:'fas fa-water',title:'Atal Bhujal Yojana (ABY)',desc:'Groundwater management in water-stressed states via community-led conservation.',items:['7 states covered','Community-driven approach','Over-exploited aquifer focus']},
+  {icon:'fas fa-seedling',title:'Pradhan Mantri Fasal Bima Yojana',desc:'Crop insurance protecting farmers against drought, flood & other perils.',items:['5.5 crore farmers covered','Subsidized premium rates','₹1.4 lakh crore claims settled']},
+  {icon:'fas fa-chart-pie',title:'Water Allocation Policy (WAP 2022)',desc:'Inter-state water sharing framework under National Water Framework Law principles.',items:['Basin-level water budgeting','Priority: drinking > irrigation','Groundwater regulation boards']},
+  {icon:'fas fa-dam',title:'Reservoir Management Guidelines',desc:'CWC-mandated real-time flood forecasting, storage optimization & drought protocols.',items:['143 reservoirs with telemetry','Dynamic rule curves','Integrated flood–drought management']},
+];
+
+const SDG_DATA = [
+  {label:'Safe drinking water access (rural)', val:76},
+  {label:'Sanitation & open defecation free',  val:89},
+  {label:'Water-use efficiency improvement',    val:42},
+  {label:'Integrated water resources mgmt',     val:55},
+  {label:'Transboundary water cooperation',     val:38},
+];
+
+/* ────────────────────────────────
+   UTILITY
+──────────────────────────────── */
+function getSeverity(rain, temp) {
+  if (rain < CONFIG.RAIN_EXTREME && temp > CONFIG.TEMP_EXTREME) return 'EXTREME';
+  if (rain < CONFIG.RAIN_EXTREME || temp > CONFIG.TEMP_EXTREME) return 'SEVERE';
+  if (rain < CONFIG.RAIN_SEVERE  || temp > CONFIG.TEMP_SEVERE)  return 'MODERATE';
+  return 'NORMAL';
+}
+function sevColor(s) { return {NORMAL:'#22c55e',MODERATE:'#facc15',SEVERE:'#f97316',EXTREME:'#ef4444'}[s]||'#22c55e'; }
+function sevLabel(s) { return {NORMAL:'Normal',MODERATE:'Moderate',SEVERE:'Severe',EXTREME:'Extreme'}[s]||'Normal'; }
+function sevBadgeClass(s) { return {NORMAL:'b-normal',MODERATE:'b-moderate',SEVERE:'b-severe',EXTREME:'b-extreme'}[s]||'b-normal'; }
+function sevChipClass(s) { return s.toLowerCase(); }
+
+function animCount(el, to, dur=1400, suffix='') {
+  const start = performance.now();
+  const run = now => {
+    const p = Math.min((now-start)/dur,1);
+    const e = 1 - Math.pow(1-p,3);
+    el.textContent = Math.round(e*to) + suffix;
+    if(p<1) requestAnimationFrame(run); else el.textContent = to + suffix;
+  };
+  requestAnimationFrame(run);
+}
+
+let toastTimer = {};
+function showToast(msg, type='info', dur=3500) {
+  const box = document.getElementById('toastBox');
+  const id = Date.now();
+  const t = document.createElement('div');
+  t.className = `toast-item ${type}`;
+  const icons = {success:'fa-check-circle',error:'fa-xmark-circle',info:'fa-circle-info'};
+  t.innerHTML = `<i class="fas ${icons[type]||icons.info}"></i><span>${msg}</span>`;
+  box.appendChild(t);
+  toastTimer[id] = setTimeout(()=>{
+    t.classList.add('fade-out');
+    setTimeout(()=>t.remove(),350);
+  }, dur);
+}
+
+/* ────────────────────────────────
+   LOADER
+──────────────────────────────── */
+function runLoader() {
+  const fill = document.getElementById('loaderFill');
+  const pct  = document.getElementById('loaderPct');
+  let p = 0;
+  const iv = setInterval(()=>{
+    p += Math.random()*8 + 2;
+    if(p>100) p=100;
+    fill.style.width = p+'%';
+    pct.textContent = Math.round(p)+'%';
+    if(p>=100) {
+      clearInterval(iv);
+      setTimeout(()=>{
+        document.getElementById('loaderScreen').classList.add('out');
+        initAll();
+      },300);
+    }
+  },80);
+}
+
+/* ────────────────────────────────
+   SIDEBAR & TOPBAR
+──────────────────────────────── */
+function initSidebar() {
+  const sidebar  = document.getElementById('sidebar');
+  const toggle   = document.getElementById('sidebarToggle');
+  const overlay  = document.getElementById('sidebarOverlay');
+  const mainWrap = document.querySelector('.main-wrap');
+
+  toggle.addEventListener('click', ()=>{
+    const mobile = window.innerWidth <= 900;
+    if(mobile) {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      mainWrap.classList.toggle('expanded');
+    }
+  });
+  overlay.addEventListener('click', ()=>{
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+  });
+
+  // Highlight active nav item on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navItems = document.querySelectorAll('.snav-item');
+  const currentSection = document.getElementById('currentSection');
+
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id = e.target.id;
+        navItems.forEach(item=>{
+          const active = item.getAttribute('href') === '#'+id;
+          item.classList.toggle('active', active);
+          if(active && item.dataset.section) currentSection.textContent = item.dataset.section;
+        });
+      }
+    });
+  },{threshold:0.3});
+  sections.forEach(s=>io.observe(s));
+
+  // Smooth scroll on nav click
+  navItems.forEach(item=>{
+    item.addEventListener('click', e=>{
+      e.preventDefault();
+      const target = document.querySelector(item.getAttribute('href'));
+      if(target) target.scrollIntoView({behavior:'smooth'});
+      if(window.innerWidth<=900){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+    });
+  });
+
+  // Also wire .smooth-scroll links
+  document.querySelectorAll('.smooth-scroll').forEach(a=>{
+    a.addEventListener('click', e=>{
+      e.preventDefault();
+      const t = document.querySelector(a.getAttribute('href'));
+      if(t) t.scrollIntoView({behavior:'smooth'});
+    });
   });
 }
 
-function styleFeature(feature, data) {
-  const name = getStateName(feature);
-  const d = data[name];
-  if (!d) return { fillColor:'#1a3a50', color:'#2a5a70', weight:1, fillOpacity:0.3 };
-  const sev = getDroughtSeverity(d.rainfall, d.temp || d.temperature);
-  const s = SEVERITY[sev];
-  return { fillColor:s.color, color:'#0a1f2e', weight:1.5, fillOpacity:s.fillOpacity, opacity:1 };
+/* Live clock */
+function startClock() {
+  const el = document.getElementById('sidebarClock');
+  const tick = ()=>{
+    el.textContent = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  };
+  tick(); setInterval(tick,1000);
 }
-// Mapping from GeoJSON property names → our STATE_DATA keys
-// The geohacker GeoJSON uses older/variant spellings for several states
-// Exact ST_NM values from india-in-data/india-states-2019 GeoJSON → STATE_DATA keys
-const GEOJSON_NAME_MAP = {
-  'Jammu & Kashmir':        'Jammu and Kashmir',  // GoI full claim incl. POK
-  'Ladakh':                 'Ladakh',
-  'Uttarakhand':            'Uttarakhand',
-  'Uttaranchal':            'Uttarakhand',
-  'Odisha':                 'Odisha',
-  'Orissa':                 'Odisha',
-  'Telangana':              'Telangana',
-  'NCT of Delhi':           'Delhi',
-  'Delhi':                  'Delhi',
-  'Andaman & Nicobar':      'Andaman and Nicobar Islands',
-  'Andaman and Nicobar':    'Andaman and Nicobar Islands',
-};
 
-function getStateName(feature) {
-  const p = feature.properties;
-  // india-states-2019 uses ST_NM; fall back to other common property keys
-  const raw = p.ST_NM || p.NAME_1 || p.name || p.state || '';
-  return GEOJSON_NAME_MAP[raw] || raw;
+/* ────────────────────────────────
+   DARK / LIGHT MODE
+──────────────────────────────── */
+function initTheme() {
+  const btn  = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
+  const html = document.documentElement;
+
+  const stored = localStorage.getItem('jd_theme') || 'dark';
+  html.setAttribute('data-theme', stored);
+  icon.className = stored==='dark'?'fas fa-moon':'fas fa-sun';
+
+  btn.addEventListener('click',()=>{
+    const now = html.getAttribute('data-theme');
+    const next = now==='dark'?'light':'dark';
+    html.setAttribute('data-theme',next);
+    icon.className = next==='dark'?'fas fa-moon':'fas fa-sun';
+    localStorage.setItem('jd_theme',next);
+    showToast(`${next==='dark'?'Dark':'Light'} mode activated`,'info',2000);
+  });
 }
-function buildPopupHTML(name, d, sev) {
-  const sevColor = getSeverityColor(sev);
-  // Kashmir boundary note — GeoJSON shows pre-2019 undivided boundary
-  const kashmirNote = (name === 'Jammu and Kashmir' || name === 'Ladakh')
-    ? `<div class="popup-note">⚠ Map shows pre-2019 boundary. J&amp;K and Ladakh are now separate UTs.</div>`
-    : '';
-  return `<div class="state-popup">
-    <h4><i class="fas fa-map-marker-alt" style="color:${sevColor}"></i> ${name}</h4>
-    ${kashmirNote}
+
+/* ────────────────────────────────
+   NOTIFICATIONS
+──────────────────────────────── */
+const NOTIFICATIONS = [
+  {sev:'extreme',text:'Extreme drought alert — Rajasthan & Gujarat',   time:'2 hours ago'},
+  {sev:'severe', text:'Reservoir levels critical in Vidarbha region',  time:'5 hours ago'},
+  {sev:'moderate',text:'Groundwater depletion rising in NCR belt',     time:'1 day ago'},
+];
+function initNotifications() {
+  const btn   = document.getElementById('notifBtn');
+  const panel = document.getElementById('notifPanel');
+  const list  = document.getElementById('npList');
+  const badge = document.getElementById('notifBadge');
+
+  function render() {
+    list.innerHTML = '';
+    NOTIFICATIONS.forEach(n=>{
+      const c = sevColor(n.sev.toUpperCase());
+      const el = document.createElement('div'); el.className='np-item';
+      el.innerHTML=`<div class="np-dot" style="background:${c}"></div><div><div class="np-text">${n.text}</div><div class="np-time">${n.time}</div></div>`;
+      list.appendChild(el);
+    });
+    badge.textContent = NOTIFICATIONS.length;
+    if(!NOTIFICATIONS.length) badge.style.display='none'; else badge.style.display='flex';
+  }
+  render();
+
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    panel.classList.toggle('open');
+  });
+  document.getElementById('clearNotifs').addEventListener('click',()=>{
+    NOTIFICATIONS.length=0; render(); panel.classList.remove('open');
+    showToast('Notifications cleared','info',2000);
+  });
+  document.addEventListener('click',()=>panel.classList.remove('open'));
+}
+
+/* ────────────────────────────────
+   STATE SEARCH
+──────────────────────────────── */
+function initSearch() {
+  const input = document.getElementById('stateSearch');
+  const drop  = document.getElementById('searchDrop');
+  const states = Object.keys(STATE_CENTROIDS);
+
+  input.addEventListener('input', ()=>{
+    const q = input.value.trim().toLowerCase();
+    drop.innerHTML='';
+    if(!q){ drop.classList.remove('open'); return; }
+    const matches = states.filter(s=>s.toLowerCase().includes(q));
+    if(!matches.length){ drop.classList.remove('open'); return; }
+    matches.slice(0,6).forEach(s=>{
+      const sev = getSeverity(STATE_DATA[currentYear]?.[s]?.rainfall||50, STATE_DATA[currentYear]?.[s]?.temperature||32);
+      const c = sevColor(sev);
+      const el = document.createElement('div'); el.className='sd-item';
+      el.innerHTML=`<i class="fas fa-map-pin" style="color:${c}"></i>${s}<span style="font-size:0.7rem;color:${c};margin-left:auto">${sevLabel(sev)}</span>`;
+      el.addEventListener('click',()=>{
+        const ll = STATE_CENTROIDS[s];
+        if(ll && map) map.flyTo(ll,7,{duration:1.2});
+        drop.classList.remove('open');
+        input.value='';
+        document.getElementById('map-section').scrollIntoView({behavior:'smooth'});
+        showToast(`Zooming to ${s}`,'info',2000);
+      });
+      drop.appendChild(el);
+    });
+    drop.classList.add('open');
+  });
+  document.addEventListener('click', e=>{ if(!input.contains(e.target)) drop.classList.remove('open'); });
+}
+
+/* ────────────────────────────────
+   PARTICLE CANVAS (HERO)
+──────────────────────────────── */
+function initParticles() {
+  const canvas = document.getElementById('particleCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const resize = ()=>{ canvas.width=canvas.offsetWidth; canvas.height=canvas.offsetHeight; };
+  resize();
+  window.addEventListener('resize',resize);
+
+  const particles = Array.from({length:55},()=>({
+    x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+    r: Math.random()*2+0.5, vx:(Math.random()-0.5)*0.4, vy:(Math.random()-0.5)*0.4,
+    o: Math.random()*0.4+0.1,
+  }));
+
+  const draw = ()=>{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>canvas.width) p.vx*=-1;
+      if(p.y<0||p.y>canvas.height) p.vy*=-1;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(56,189,248,${p.o})`;
+      ctx.fill();
+    });
+    // Draw connecting lines
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(14,165,233,${0.12*(1-dist/120)})`;
+          ctx.lineWidth=0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+/* ────────────────────────────────
+   HERO COUNTERS
+──────────────────────────────── */
+function initHeroCounters() {
+  const els = document.querySelectorAll('.hkpi-n');
+  const io = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const el=e.target, to=parseInt(el.dataset.count), suf=el.dataset.suffix||'';
+        animCount({set textContent(v){el.textContent=v;}}, to, 1800, suf);
+        io.unobserve(el);
+      }
+    });
+  },{threshold:0.5});
+  els.forEach(e=>io.observe(e));
+}
+
+/* ────────────────────────────────
+   METRICS
+──────────────────────────────── */
+let currentMetrics = {rainfall:45,temperature:36,reservoir:52,population:34,agri:28,groundwater:20,stress:58};
+
+const METRIC_DEFS = [
+  {id:'rainfall',   icon:'fas fa-cloud-rain',        label:'Monthly Rainfall',     unit:'mm', sub:'vs 70mm seasonal normal', accent:'#0ea5e9', max:200, get:m=>m.rainfall},
+  {id:'temperature',icon:'fas fa-thermometer-half',  label:'Temperature',          unit:'°C', sub:'Current ambient',         accent:'#f97316', max:50,  get:m=>m.temperature},
+  {id:'reservoir',  icon:'fas fa-water',             label:'Reservoir Level',      unit:'%',  sub:'National average storage', accent:'#22c55e', max:100, get:m=>m.reservoir},
+  {id:'drought',    icon:'fas fa-triangle-exclamation',label:'Drought Severity',   unit:'',   sub:'IMD-based classification', accent:'#ef4444', max:100, get:m=>({NORMAL:15,MODERATE:45,SEVERE:75,EXTREME:100}[getSeverity(m.rainfall,m.temperature)])},
+  {id:'population', icon:'fas fa-users',             label:'Population Affected',  unit:'M',  sub:'Estimated millions at risk',accent:'#facc15',max:500, get:m=>m.population},
+  {id:'agri',       icon:'fas fa-wheat-awn',         label:'Agricultural Impact',  unit:'%',  sub:'Crop area under stress',   accent:'#8b5cf6', max:100, get:m=>m.agri},
+  {id:'groundwater',icon:'fas fa-arrow-trend-down',  label:'Groundwater Depth',    unit:'m',  sub:'Average depth below surface',accent:'#06b6d4',max:60, get:m=>m.groundwater},
+  {id:'stress',     icon:'fas fa-gauge-high',        label:'Water Stress Index',   unit:'',   sub:'0–100 composite index',    accent:'#a855f7', max:100, get:m=>m.stress},
+];
+
+function renderMetrics(metrics) {
+  const grid = document.getElementById('metricsGrid');
+  grid.innerHTML='';
+  const sev = getSeverity(metrics.rainfall, metrics.temperature);
+
+  METRIC_DEFS.forEach((def,i)=>{
+    const val   = def.get(metrics);
+    const isStr = def.id==='drought';
+    const display = isStr ? sevLabel(sev) : val;
+    const fill  = Math.min(isStr?val:(val/def.max)*100,100);
+
+    const card  = document.createElement('div');
+    card.className='metric-card';
+    card.style.setProperty('--accent', isStr?sevColor(sev):def.accent);
+
+    const sparkData = Array.from({length:8},()=>Math.max(0,val+(Math.random()-0.5)*val*0.3));
+
+    card.innerHTML=`
+      <div class="mc-top">
+        <div class="mc-icon"><i class="${def.icon}"></i></div>
+        <span class="mc-badge ${isStr?sevBadgeClass(sev):'b-normal'}">${isStr?sev:'LIVE'}</span>
+      </div>
+      <div class="mc-label">${def.label}</div>
+      <div class="mc-value" id="mcv-${def.id}">${isStr?display:'0'+def.unit}</div>
+      <div class="mc-sub">${def.sub}</div>
+      <canvas class="mc-sparkline" id="spark-${def.id}" height="36"></canvas>
+      <div class="mc-bar"><div class="mc-bar-fill" style="width:0" data-w="${fill}"></div></div>`;
+
+    grid.appendChild(card);
+
+    // Animate counter
+    if(!isStr) {
+      const el = card.querySelector('.mc-value');
+      setTimeout(()=>animCount({set textContent(v){el.textContent=v+def.unit;}},Math.round(val),1200),i*60);
+    }
+
+    // Animate bar
+    setTimeout(()=>{
+      const b = card.querySelector('.mc-bar-fill');
+      b.style.transition='width 1.2s cubic-bezier(0.4,0,0.2,1)';
+      b.style.width = b.dataset.w+'%';
+    },200+i*60);
+
+    // Sparkline
+    setTimeout(()=>drawSparkline(card.querySelector('.mc-sparkline'), sparkData, isStr?sevColor(sev):def.accent), 300+i*60);
+  });
+
+  updateGauge(metrics);
+  updateAlertStatus(metrics);
+  checkExtreme(metrics);
+  renderTop5();
+  renderAnomalyList();
+}
+
+function drawSparkline(canvas, data, color) {
+  if(!canvas) return;
+  canvas.width = canvas.offsetWidth||200;
+  const ctx = canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height, pad=3;
+  const max=Math.max(...data)||1, min=Math.min(...data);
+  const xStep=(w-pad*2)/(data.length-1);
+
+  ctx.clearRect(0,0,w,h);
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,color+'40'); grad.addColorStop(1,color+'00');
+
+  ctx.beginPath();
+  ctx.moveTo(pad, h-pad-((data[0]-min)/(max-min+0.001))*(h-pad*2));
+  data.forEach((v,i)=>{ if(i>0) ctx.lineTo(pad+i*xStep, h-pad-((v-min)/(max-min+0.001))*(h-pad*2)); });
+  ctx.lineTo(w-pad,h-pad); ctx.lineTo(pad,h-pad);
+  ctx.fillStyle=grad; ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(pad, h-pad-((data[0]-min)/(max-min+0.001))*(h-pad*2));
+  data.forEach((v,i)=>{ if(i>0) ctx.lineTo(pad+i*xStep, h-pad-((v-min)/(max-min+0.001))*(h-pad*2)); });
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+/* ────────────────────────────────
+   GAUGE
+──────────────────────────────── */
+function updateGauge(metrics) {
+  const sev = getSeverity(metrics.rainfall, metrics.temperature);
+  const pct = {NORMAL:10,MODERATE:40,SEVERE:72,EXTREME:100}[sev];
+  const color = sevColor(sev);
+  const total = 251; // arc length approx
+  const offset = total - (total * pct / 100);
+  const path = document.getElementById('gaugeFill');
+  if(path){ path.style.strokeDashoffset=offset; path.style.stroke=color; }
+  const valEl = document.getElementById('gaugeValText');
+  const labEl = document.getElementById('gaugeLabText');
+  if(valEl) valEl.textContent = pct+'%';
+  if(labEl){ labEl.textContent = sevLabel(sev); labEl.style.fill = color; }
+}
+
+/* ────────────────────────────────
+   TOP 5 + ANOMALY
+──────────────────────────────── */
+function renderTop5() {
+  const list = document.getElementById('top5List');
+  if(!list) return;
+  const data = STATE_DATA[currentYear]||STATE_DATA[2025];
+  const ranked = Object.entries(data)
+    .map(([state,d])=>({state,sev:getSeverity(d.rainfall,d.temperature),score:{NORMAL:0,MODERATE:1,SEVERE:2,EXTREME:3}[getSeverity(d.rainfall,d.temperature)],rainfall:d.rainfall}))
+    .sort((a,b)=>b.score-a.score||a.rainfall-b.rainfall)
+    .slice(0,5);
+
+  list.innerHTML='';
+  ranked.forEach((item,i)=>{
+    const c = sevColor(item.sev);
+    const pct = (1-item.rainfall/200)*100;
+    const div = document.createElement('div'); div.className='top5-item';
+    div.innerHTML=`
+      <span class="top5-rank">${i+1}</span>
+      <span class="top5-name">${item.state}</span>
+      <div class="top5-bar-wrap"><div class="top5-bar-fill" style="width:0;background:${c}" data-w="${pct}"></div></div>
+      <span class="top5-sev" style="background:${c}22;color:${c}">${sevLabel(item.sev)}</span>`;
+    list.appendChild(div);
+    setTimeout(()=>{ const b=div.querySelector('.top5-bar-fill'); b.style.transition='width 1s ease'; b.style.width=b.dataset.w+'%'; },100+i*80);
+  });
+}
+
+function renderAnomalyList() {
+  const list = document.getElementById('anomalyList');
+  if(!list) return;
+  const data = STATE_DATA[currentYear]||STATE_DATA[2025];
+  const NORMAL_RAIN = 70;
+  const items = Object.entries(data).slice(0,8).map(([state,d])=>({state, anomaly:((d.rainfall-NORMAL_RAIN)/NORMAL_RAIN*100).toFixed(0)}));
+
+  list.innerHTML='';
+  items.forEach(item=>{
+    const pos = parseFloat(item.anomaly)>=0;
+    const div=document.createElement('div'); div.className='anomaly-item';
+    div.innerHTML=`<span class="anomaly-name">${item.state}</span><span class="anomaly-val ${pos?'anomaly-pos':'anomaly-neg'}">${pos?'+':''}${item.anomaly}%</span>`;
+    list.appendChild(div);
+  });
+}
+
+/* ────────────────────────────────
+   WEATHER API
+──────────────────────────────── */
+async function fetchWeather(city) {
+  const btn   = document.getElementById('fetchWeatherBtn');
+  const icon  = document.getElementById('fetchIcon');
+  const pill  = document.getElementById('apiStatus');
+  const upd   = document.getElementById('lastUpdate');
+
+  icon.className='fas fa-sync-alt spin'; btn.disabled=true;
+  pill.textContent='Fetching…'; pill.className='api-pill';
+
+  const url = `${CONFIG.OWM_URL}?q=${encodeURIComponent(city)},IN&appid=${CONFIG.OWM_API_KEY}&units=metric`;
+
+  try {
+    const r = await fetch(url);
+    if(r.status===401) throw new Error('Invalid API key');
+    if(!r.ok) throw new Error('API error '+r.status);
+    const d = await r.json();
+
+    const rain = d.rain?.['1h']||0;
+    currentMetrics.rainfall    = Math.round(rain*720)||Math.floor(Math.random()*60+20);
+    currentMetrics.temperature = Math.round(d.main.temp);
+    currentMetrics.reservoir   = Math.max(20,Math.min(95,d.main.humidity));
+    currentMetrics.population  = Math.round(20+Math.random()*80);
+    currentMetrics.agri        = Math.round(15+Math.random()*50);
+    currentMetrics.groundwater = Math.round(10+Math.random()*40);
+    currentMetrics.stress      = Math.round(20+Math.random()*70);
+
+    pill.textContent='✓ Live'; pill.className='api-pill ok';
+    upd.textContent = 'Updated '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    showToast(`Live data loaded for ${city}`,'success');
+  } catch(err) {
+    // Fallback simulated
+    currentMetrics.rainfall    = Math.floor(Math.random()*80+15);
+    currentMetrics.temperature = Math.floor(Math.random()*12+30);
+    currentMetrics.reservoir   = Math.floor(Math.random()*50+30);
+    currentMetrics.population  = Math.round(20+Math.random()*80);
+    currentMetrics.agri        = Math.round(15+Math.random()*50);
+    currentMetrics.groundwater = Math.round(10+Math.random()*40);
+    currentMetrics.stress      = Math.round(30+Math.random()*60);
+
+    pill.textContent='⚠ Simulated'; pill.className='api-pill err';
+    showToast(`Using simulated data (${err.message})`,'error');
+  } finally {
+    icon.className='fas fa-sync-alt'; btn.disabled=false;
+    renderMetrics(currentMetrics);
+    computeAI(currentMetrics);
+  }
+}
+
+document.getElementById('fetchWeatherBtn').addEventListener('click',()=>fetchWeather(document.getElementById('citySelect').value));
+document.getElementById('citySelect').addEventListener('change',()=>fetchWeather(document.getElementById('citySelect').value));
+document.getElementById('yearFilter').addEventListener('change',e=>{
+  currentYear=parseInt(e.target.value);
+  document.getElementById('yearSelect').value=e.target.value;
+  loadGeoJSON(currentYear);
+  renderTop5(); renderAnomalyList();
+  showToast(`Viewing ${currentYear} data`,'info',2000);
+});
+
+/* ────────────────────────────────
+   AI DROUGHT PREDICTION
+──────────────────────────────── */
+function computeAI(metrics) {
+  const rain = metrics.rainfall;
+  const temp = metrics.temperature;
+  const sev  = getSeverity(rain,temp);
+  const probMap = {NORMAL:12,MODERATE:38,SEVERE:72,EXTREME:94};
+  const prob = probMap[sev] + Math.round((Math.random()-0.5)*8);
+
+  const probEl = document.getElementById('aiProb');
+  const riskEl = document.getElementById('aiRisk');
+  const fillEl = document.getElementById('aiFill');
+
+  if(probEl) { animCount({set textContent(v){probEl.textContent=v+'%';}}, prob, 1200); }
+  if(riskEl) { riskEl.textContent = `Predicted ${sevLabel(sev)} drought risk for next 30 days`; riskEl.style.color=sevColor(sev); }
+  if(fillEl) { setTimeout(()=>{ fillEl.style.width=prob+'%'; },200); }
+}
+
+/* ────────────────────────────────
+   MAP
+──────────────────────────────── */
+let map, geoLayer, heatLayer;
+let currentYear = 2025;
+
+function initMap() {
+  map = L.map('indiaMap',{center:[22.5,82],zoom:5,minZoom:4,maxZoom:10});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OSM &copy; CARTO', subdomains:'abcd', maxZoom:19,
+  }).addTo(map);
+
+  addHeatLayer();
+  loadGeoJSON(currentYear);
+
+  document.getElementById('yearSelect').addEventListener('change',e=>{
+    currentYear=parseInt(e.target.value);
+    document.getElementById('yearFilter').value=e.target.value;
+    loadGeoJSON(currentYear);
+    renderTop5(); renderAnomalyList();
+  });
+  document.getElementById('heatmapToggle').addEventListener('change',e=>{
+    e.target.checked ? heatLayer.addTo(map) : map.removeLayer(heatLayer);
+  });
+  document.getElementById('choroplethToggle').addEventListener('change',e=>{
+    if(geoLayer) e.target.checked ? geoLayer.addTo(map) : map.removeLayer(geoLayer);
+  });
+  document.getElementById('resetMapBtn').addEventListener('click',()=>map.flyTo([22.5,82],5,{duration:1}));
+}
+
+function loadGeoJSON(year) {
+  const loader = document.getElementById('mapLoader');
+  loader.classList.remove('hidden');
+  const data = STATE_DATA[year]||STATE_DATA[2025];
+  if(geoLayer){ map.removeLayer(geoLayer); geoLayer=null; }
+
+  fetch(CONFIG.GEOJSON_URL)
+    .then(r=>r.json())
+    .then(geo=>{
+      geoLayer = L.geoJSON(geo,{
+        style: f=>styleFeature(f,data),
+        onEachFeature:(f,layer)=>bindFeature(f,layer,data),
+      }).addTo(map);
+      loader.classList.add('hidden');
+    })
+    .catch(()=>{
+      loader.classList.add('hidden');
+      renderFallbackMarkers(data);
+    });
+}
+
+function styleFeature(f,data) {
+  const name = f.properties?.NAME_1||f.properties?.name||f.properties?.ST_NM||'';
+  const d = data[name];
+  if(!d) return {fillColor:'#1a3a50',color:'#0a1f2e',weight:1,fillOpacity:0.25};
+  const s = getSeverity(d.rainfall,d.temperature);
+  const clr = sevColor(s);
+  return {fillColor:clr,color:'#0a1f2e',weight:1.5,fillOpacity:0.55,opacity:1};
+}
+
+function bindFeature(f,layer,data) {
+  const name = f.properties?.NAME_1||f.properties?.name||f.properties?.ST_NM||'Unknown';
+  const d = data[name]||{rainfall:50,temperature:32,reservoir:60,groundwater:20};
+  const sev = getSeverity(d.rainfall,d.temperature);
+  const c = sevColor(sev);
+
+  layer.bindPopup(makePopup(name,d,sev,c),{maxWidth:260});
+
+  layer.on('mouseover',function(){
+    this.setStyle({weight:2.5,fillOpacity:0.75});
+    this.openPopup();
+  });
+  layer.on('mouseout',function(){
+    if(geoLayer) geoLayer.resetStyle(this);
+    this.closePopup();
+  });
+  layer.on('click',function(){ map.fitBounds(this.getBounds(),{padding:[40,40]}); });
+}
+
+function makePopup(name,d,sev,c) {
+  return `<div class="spopup">
+    <h4><i class="fas fa-map-pin" style="color:${c}"></i>${name}</h4>
     <table>
-      <tr><td>🌧 Rainfall</td><td>${d.rainfall||'—'} mm/month</td></tr>
-      <tr><td>🌡 Temperature</td><td>${d.temp||d.temperature||'—'}°C</td></tr>
-      <tr><td>💧 Reservoir</td><td>${d.reservoir||'—'}%</td></tr>
-      <tr><td>🌱 Groundwater</td><td>${d.groundwater||'—'} m</td></tr>
+      <tr><td>🌧 Rainfall</td><td>${d.rainfall}mm/mo</td></tr>
+      <tr><td>🌡 Temperature</td><td>${d.temperature}°C</td></tr>
+      <tr><td>💧 Reservoir</td><td>${d.reservoir}%</td></tr>
+      <tr><td>🌱 Groundwater</td><td>${d.groundwater}m depth</td></tr>
     </table>
-    <span class="popup-severity" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">
-      ${SEVERITY[sev].label} Drought
-    </span>
+    <span class="spopup-sev" style="background:${c}22;color:${c};border:1px solid ${c}44">${sevLabel(sev)} Drought</span>
   </div>`;
 }
-function bindPopup(feature, layer, data) {
-  const name = getStateName(feature);
-  const d = data[name] || { rainfall:50, temperature:32, reservoir:60, groundwater:20 };
-  const sev = getDroughtSeverity(d.rainfall, d.temp || d.temperature);
-  layer.bindPopup(buildPopupHTML(name, d, sev), { maxWidth:260 });
-  layer.on('mouseover', function() { this.setStyle({ weight:2.5, fillOpacity:Math.min(SEVERITY[sev].fillOpacity+0.15,1) }); this.openPopup(); });
-  layer.on('mouseout', function()  { geoJsonLayer.resetStyle(this); this.closePopup(); });
-  layer.on('click', function()     { map.fitBounds(this.getBounds(), { padding:[40,40] }); this.openPopup(); });
+
+function renderFallbackMarkers(data) {
+  Object.entries(STATE_CENTROIDS).forEach(([state,ll])=>{
+    const d=data[state]||{rainfall:50,temperature:32,reservoir:60,groundwater:20};
+    const sev=getSeverity(d.rainfall,d.temperature), c=sevColor(sev);
+    L.circleMarker(ll,{radius:13,fillColor:c,color:'#0a1f2e',weight:1.5,opacity:1,fillOpacity:0.7})
+     .bindPopup(makePopup(state,d,sev,c)).addTo(map);
+  });
 }
-function addHeatmap() {
-  heatLayer = L.heatLayer(HEATMAP_POINTS, {
-    radius:35, blur:22, maxZoom:9,
-    gradient:{ 0.0:'#003366', 0.2:'#0369a1', 0.4:'#facc15', 0.6:'#f97316', 0.8:'#ef4444', 1.0:'#7f1d1d' },
+
+function addHeatLayer() {
+  heatLayer = L.heatLayer(HEATMAP_POINTS,{
+    radius:35,blur:22,maxZoom:9,
+    gradient:{0:'#003366',0.2:'#0369a1',0.4:'#facc15',0.6:'#f97316',0.8:'#ef4444',1:'#7f1d1d'},
   }).addTo(map);
 }
 
-/* ────────────────────────────────────────────────────────────────
-   9. CHART.JS ANALYTICS
-──────────────────────────────────────────────────────────────── */
-Chart.defaults.color = '#6b8ba4';
-Chart.defaults.font.family = "'DM Sans', sans-serif";
-Chart.defaults.font.size = 12;
-Chart.defaults.borderColor = 'rgba(14,165,233,0.1)';
+/* ────────────────────────────────
+   CHARTS
+──────────────────────────────── */
+Chart.defaults.color='#5a7a92';
+Chart.defaults.font.family="'Outfit',sans-serif";
+Chart.defaults.font.size=12;
+Chart.defaults.borderColor='rgba(14,165,233,0.1)';
 
-const CC = {
-  blue:'rgba(14,165,233,1)', blueA:'rgba(14,165,233,0.2)',
-  green:'rgba(34,197,94,1)', greenA:'rgba(34,197,94,0.2)',
+const CC={
+  blue:'rgba(14,165,233,1)', blueA:'rgba(14,165,233,0.15)',
+  green:'rgba(34,197,94,1)', greenA:'rgba(34,197,94,0.15)',
   yellow:'rgba(250,204,21,1)', orange:'rgba(249,115,22,1)', red:'rgba(239,68,68,1)',
+  purple:'rgba(168,85,247,1)',
 };
 
-let rainfallChart;
-function initRainfallChart(region = 'All India') {
-  const ctx = document.getElementById('rainfallChart').getContext('2d');
-  const d = MONTHLY_RAINFALL[region] || MONTHLY_RAINFALL['All India'];
-  if (rainfallChart) rainfallChart.destroy();
-  rainfallChart = new Chart(ctx, {
+function tooltipDefaults() {
+  return {backgroundColor:'#071624',borderColor:'rgba(14,165,233,0.3)',borderWidth:1,padding:12,cornerRadius:8};
+}
+
+let rfChart;
+function initRainfallChart(region='All India') {
+  const ctx=document.getElementById('rainfallChart').getContext('2d');
+  const d=MONTHLY_RAINFALL[region]||MONTHLY_RAINFALL['All India'];
+  if(rfChart) rfChart.destroy();
+  rfChart=new Chart(ctx,{
     type:'line',
-    data: {
-      labels: MONTHLY_RAINFALL.labels,
-      datasets: [
-        { label:'Actual Rainfall (mm)', data:d.actual, borderColor:CC.blue, backgroundColor:CC.blueA, borderWidth:2.5, fill:true, tension:0.4, pointRadius:4, pointHoverRadius:7, pointBackgroundColor:CC.blue },
-        { label:'30-Year Normal (mm)', data:d.normal, borderColor:CC.yellow, backgroundColor:'transparent', borderWidth:2, borderDash:[6,4], fill:false, tension:0.4, pointRadius:3, pointHoverRadius:6, pointBackgroundColor:CC.yellow },
+    data:{
+      labels:MONTHLY_RAINFALL.labels,
+      datasets:[
+        {label:'Actual (mm)',data:d.actual,borderColor:CC.blue,backgroundColor:CC.blueA,borderWidth:2.5,fill:true,tension:0.4,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:CC.blue},
+        {label:'30-yr Normal',data:d.normal,borderColor:CC.yellow,backgroundColor:'transparent',borderWidth:2,borderDash:[6,4],tension:0.4,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:CC.yellow},
       ],
     },
-    options: {
-      responsive:true, interaction:{ mode:'index', intersect:false },
-      plugins:{ legend:{labels:{usePointStyle:true,padding:16}}, tooltip:{backgroundColor:'#061825',borderColor:'rgba(14,165,233,0.3)',borderWidth:1,padding:12} },
-      scales: { x:{grid:{color:'rgba(255,255,255,0.05)'}}, y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true,title:{display:true,text:'Rainfall (mm)'}} },
-    },
+    options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,padding:16}},tooltip:tooltipDefaults()},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}},y:{grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true,title:{display:true,text:'mm'}}}},
   });
 }
 
 function initReservoirChart() {
-  const ctx = document.getElementById('reservoirChart').getContext('2d');
-  new Chart(ctx, {
+  const ctx=document.getElementById('reservoirChart').getContext('2d');
+  const pcts=RESERVOIR_DATA.current.map((v,i)=>v/RESERVOIR_DATA.capacity[i]);
+  new Chart(ctx,{
     type:'bar',
-    data: {
-      labels: RESERVOIR_DATA.labels,
-      datasets: [
-        { label:'Current Storage (BCM)', data:RESERVOIR_DATA.current, backgroundColor:RESERVOIR_DATA.current.map((v,i) => v/RESERVOIR_DATA.capacity[i]<0.4?CC.red:v/RESERVOIR_DATA.capacity[i]<0.6?CC.orange:CC.blue), borderRadius:6, borderSkipped:false },
-        { label:'Total Capacity (BCM)', data:RESERVOIR_DATA.capacity, backgroundColor:'rgba(255,255,255,0.05)', borderColor:'rgba(255,255,255,0.15)', borderWidth:1, borderRadius:6, borderSkipped:false },
+    data:{
+      labels:RESERVOIR_DATA.labels,
+      datasets:[
+        {label:'Current (BCM)',data:RESERVOIR_DATA.current,backgroundColor:pcts.map(p=>p<0.4?CC.red:p<0.6?CC.orange:CC.blue),borderRadius:5,borderSkipped:false},
+        {label:'Capacity (BCM)',data:RESERVOIR_DATA.capacity,backgroundColor:'rgba(255,255,255,0.04)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,borderRadius:5,borderSkipped:false},
       ],
     },
-    options: {
-      responsive:true,
-      plugins:{ legend:{labels:{usePointStyle:true}}, tooltip:{backgroundColor:'#061825',borderColor:'rgba(14,165,233,0.3)',borderWidth:1,padding:12} },
-      scales: { x:{grid:{display:false},ticks:{maxRotation:35,font:{size:10}}}, y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'BCM'}} },
-    },
+    options:{responsive:true,plugins:{legend:{labels:{usePointStyle:true}},tooltip:tooltipDefaults()},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:35,font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'BCM'}}}},
   });
 }
 
 function initGroundwaterChart() {
-  const ctx = document.getElementById('groundwaterChart').getContext('2d');
-  new Chart(ctx, {
+  const ctx=document.getElementById('groundwaterChart').getContext('2d');
+  const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const data=[18,19,20,22,24,25,21,18,16,15,16,17];
+  new Chart(ctx,{
     type:'line',
-    data: {
-      labels: GROUNDWATER_DATA.labels,
-      datasets:[{ label:'Depth to Water Table (m)', data:GROUNDWATER_DATA.depth, borderColor:CC.orange, backgroundColor:'rgba(249,115,22,0.1)', borderWidth:2.5, fill:true, tension:0.4, pointRadius:5, pointHoverRadius:8, pointBackgroundColor:CC.orange }],
-    },
-    options: {
-      responsive:true,
-      plugins:{ legend:{labels:{usePointStyle:true}}, tooltip:{backgroundColor:'#061825',borderColor:'rgba(249,115,22,0.3)',borderWidth:1,padding:12} },
-      scales: { x:{grid:{color:'rgba(255,255,255,0.05)'}}, y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'Depth (m below surface)'}} },
-    },
+    data:{labels,datasets:[{label:'Depth (m)',data,borderColor:CC.orange,backgroundColor:'rgba(249,115,22,0.1)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:4,pointHoverRadius:7,pointBackgroundColor:CC.orange}]},
+    options:{responsive:true,plugins:{legend:{labels:{usePointStyle:true}},tooltip:tooltipDefaults()},
+      scales:{x:{grid:{color:'rgba(255,255,255,0.05)'}},y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'m below surface'}}}},
+  });
+}
+
+function initCropLossChart() {
+  const ctx=document.getElementById('cropLossChart').getContext('2d');
+  const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const data=[5,6,8,12,18,22,14,10,8,6,5,4];
+  new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Crop area affected (%)',data,backgroundColor:data.map(v=>v>18?CC.red:v>12?CC.orange:CC.yellow),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,plugins:{legend:{labels:{usePointStyle:true}},tooltip:tooltipDefaults()},
+      scales:{x:{grid:{display:false}},y:{grid:{color:'rgba(255,255,255,0.05)'},title:{display:true,text:'%'},max:30}}},
   });
 }
 
 function initUsagePieChart() {
-  const ctx = document.getElementById('usagePieChart').getContext('2d');
-  new Chart(ctx, {
+  const ctx=document.getElementById('usagePieChart').getContext('2d');
+  new Chart(ctx,{
     type:'doughnut',
-    data: { labels:WATER_USAGE.labels, datasets:[{ data:WATER_USAGE.data, backgroundColor:WATER_USAGE.colors, borderColor:'#061825', borderWidth:3, hoverOffset:12 }] },
-    options: {
-      responsive:true, cutout:'65%',
-      plugins:{ legend:{position:'bottom',labels:{usePointStyle:true,padding:16}}, tooltip:{backgroundColor:'#061825',borderColor:'rgba(14,165,233,0.3)',borderWidth:1,padding:12,callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed}%`}} },
+    data:{
+      labels:['Agriculture','Domestic','Industrial','Energy','Environment'],
+      datasets:[{data:[78,8,7,4,3],backgroundColor:['#0ea5e9','#22c55e','#f97316','#facc15','#8b5cf6'],borderColor:'#071624',borderWidth:3,hoverOffset:12}],
     },
+    options:{responsive:true,cutout:'65%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14}},tooltip:{...tooltipDefaults(),callbacks:{label:c=>` ${c.label}: ${c.parsed}%`}}}},
   });
 }
 
-document.getElementById('rainfallStateSelect').addEventListener('change', (e) => initRainfallChart(e.target.value));
+/* Reservoir fill meters */
+function renderReservoirMeters() {
+  const grid=document.getElementById('rmGrid');
+  if(!grid) return;
+  grid.innerHTML='';
+  RESERVOIR_DATA.labels.forEach((name,i)=>{
+    const pct=Math.round((RESERVOIR_DATA.current[i]/RESERVOIR_DATA.capacity[i])*100);
+    const c=pct<40?'#ef4444':pct<60?'#f97316':'#0ea5e9';
+    const div=document.createElement('div'); div.className='rm-item';
+    div.innerHTML=`
+      <div class="rm-label-row"><span class="rm-name">${name}</span><span class="rm-pct">${pct}%</span></div>
+      <div class="rm-track"><div class="rm-fill" style="width:0;background:${c}" data-w="${pct}"></div></div>`;
+    grid.appendChild(div);
+    setTimeout(()=>{ const f=div.querySelector('.rm-fill'); f.style.transition='width 1.2s ease'; f.style.width=pct+'%'; },100+i*80);
+  });
+}
 
-/* ────────────────────────────────────────────────────────────────
-   10. ALERT SYSTEM
-──────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────
+   ALERT SYSTEM
+──────────────────────────────── */
 function renderAlertFeed() {
-  const list = document.getElementById('alertList');
-  list.innerHTML = '';
-  SEED_ALERTS.forEach(alert => {
-    const color = getSeverityColor(alert.severity.toUpperCase());
-    const item = document.createElement('div');
-    item.className = 'alert-item';
-    item.innerHTML = `
-      <div class="alert-dot" style="background:${color}"></div>
-      <div class="alert-item-text">
-        <strong style="color:${color}">${alert.state}</strong> — ${alert.message}
-        <div class="alert-item-time">${alert.time}</div>
-      </div>`;
-    list.appendChild(item);
+  const list=document.getElementById('alertFeedList');
+  if(!list) return;
+  list.innerHTML='';
+  SEED_ALERTS.forEach(a=>{
+    const c=sevColor(a.sev.toUpperCase());
+    const el=document.createElement('div'); el.className='af-item';
+    el.innerHTML=`<div class="af-dot" style="background:${c}"></div><div class="af-text"><strong style="color:${c}">${a.state}</strong> — ${a.msg}<div class="af-time">${a.time}</div></div>`;
+    list.appendChild(el);
   });
 }
 
 function updateAlertStatus(metrics) {
-  const sev = getDroughtSeverity(metrics.rainfall, metrics.temperature);
-  const fillEl  = document.getElementById('severityFill');
-  const labelEl = document.getElementById('severityLabel');
-  const statusEl = document.getElementById('alertSystemStatus');
-
-  const fillMap  = { NORMAL:15, MODERATE:40, SEVERE:70, EXTREME:100 };
-  const colorMap = { NORMAL:'#22c55e', MODERATE:'#facc15', SEVERE:'#f97316', EXTREME:'#ef4444' };
-  const classMap = { NORMAL:'normal', MODERATE:'moderate', SEVERE:'severe', EXTREME:'extreme' };
-
-  fillEl.style.width = fillMap[sev] + '%';
-  fillEl.style.background = colorMap[sev];
-  labelEl.textContent = SEVERITY[sev].label + ' Risk';
-  labelEl.className = 'severity-label ' + classMap[sev];
-  statusEl.textContent = sev === 'EXTREME' ? '🚨 Critical Alert Active' : 'Monitoring Active';
+  const sev=getSeverity(metrics.rainfall,metrics.temperature);
+  const fill=document.getElementById('sevFill');
+  const chip=document.getElementById('sevChip');
+  const status=document.getElementById('alertSysStatus');
+  const map2={NORMAL:10,MODERATE:40,SEVERE:72,EXTREME:100};
+  const c=sevColor(sev);
+  if(fill){fill.style.width=map2[sev]+'%';fill.style.background=c;}
+  if(chip){chip.textContent=sevLabel(sev)+' Risk';chip.className='sev-chip '+sevChipClass(sev);}
+  if(status) status.textContent = sev==='EXTREME'?'🚨 Critical Alert Active':'Monitoring Active';
 }
 
-function checkExtremeDrought(metrics) {
-  const sev = getDroughtSeverity(metrics.rainfall, metrics.temperature);
-  if (sev === 'EXTREME') {
-    document.getElementById('modalMessage').textContent =
-      `Critical conditions detected — Rainfall: ${metrics.rainfall}mm/month, Temperature: ${metrics.temperature}°C. Immediate water conservation measures required.`;
-    const prefs = JSON.parse(localStorage.getItem('jaldrishti_prefs') || '{}');
-    document.getElementById('smsSentBadge').style.display = prefs.sms ? 'flex' : 'none';
-    document.getElementById('droughtModal').classList.add('active');
-    addAlertToFeed('EXTREME', 'Detected Region', `Rainfall ${metrics.rainfall}mm, Temp ${metrics.temperature}°C — Auto-triggered`);
+function checkExtreme(metrics) {
+  const sev=getSeverity(metrics.rainfall,metrics.temperature);
+  if(sev==='EXTREME') {
+    const modal=document.getElementById('droughtModal');
+    const msg=document.getElementById('modalMsg');
+    const smsEl=document.getElementById('modalSmsBadge');
+    msg.textContent=`Critical — Rainfall: ${metrics.rainfall}mm, Temperature: ${metrics.temperature}°C. Immediate intervention required.`;
+    const prefs=JSON.parse(localStorage.getItem('jd_prefs')||'{}');
+    smsEl.style.display=prefs.sms?'flex':'none';
+    modal.classList.add('open');
+    // Add to feed
+    const list=document.getElementById('alertFeedList');
+    if(list){
+      const c=sevColor('EXTREME');
+      const el=document.createElement('div'); el.className='af-item';
+      el.innerHTML=`<div class="af-dot" style="background:${c}"></div><div class="af-text"><strong style="color:${c}">Auto-Alert</strong> — Extreme drought auto-triggered<div class="af-time">Just now</div></div>`;
+      list.prepend(el);
+    }
   }
 }
 
-function addAlertToFeed(severity, state, message) {
-  const list = document.getElementById('alertList');
-  const color = getSeverityColor(severity);
-  const item = document.createElement('div');
-  item.className = 'alert-item';
-  item.style.animation = 'fadeUp 0.4s ease forwards';
-  item.innerHTML = `
-    <div class="alert-dot" style="background:${color}"></div>
-    <div class="alert-item-text">
-      <strong style="color:${color}">${state}</strong> — ${message}
-      <div class="alert-item-time">Just now</div>
-    </div>`;
-  list.prepend(item);
+function initAlertSystem() {
+  document.getElementById('modalAck').addEventListener('click',()=>{
+    document.getElementById('droughtModal').classList.remove('open');
+    showToast('Alert acknowledged','success');
+  });
+  document.getElementById('modalClose').addEventListener('click',()=>document.getElementById('droughtModal').classList.remove('open'));
+
+  document.getElementById('saveAlertBtn').addEventListener('click',()=>{
+    const prefs={
+      sms:document.getElementById('smsCheck').checked,
+      email:document.getElementById('emailCheck').checked,
+      push:document.getElementById('pushCheck').checked,
+      phone:document.getElementById('phoneInput').value,
+    };
+    localStorage.setItem('jd_prefs',JSON.stringify(prefs));
+    showToast('Alert preferences saved','success');
+    if(prefs.sms&&prefs.phone) setTimeout(()=>showToast(`SMS configured for ${prefs.phone}`,'info'),1200);
+  });
+
+  // Load saved prefs
+  const prefs=JSON.parse(localStorage.getItem('jd_prefs')||'{}');
+  if(prefs.sms!==undefined) document.getElementById('smsCheck').checked=prefs.sms;
+  if(prefs.email!==undefined) document.getElementById('emailCheck').checked=prefs.email;
+  if(prefs.push!==undefined) document.getElementById('pushCheck').checked=prefs.push;
+  if(prefs.phone) document.getElementById('phoneInput').value=prefs.phone;
 }
 
-document.getElementById('modalAck').addEventListener('click', () => {
-  document.getElementById('droughtModal').classList.remove('active');
-  showToast('Alert acknowledged. Response protocol initiated.');
-});
-document.getElementById('modalClose').addEventListener('click', () => document.getElementById('droughtModal').classList.remove('active'));
-document.getElementById('smsAlertBtn').addEventListener('click', () => document.getElementById('alerts').scrollIntoView({ behavior:'smooth' }));
-
-document.getElementById('saveAlertBtn').addEventListener('click', () => {
-  const prefs = {
-    sms:   document.getElementById('smsCheck').checked,
-    email: document.getElementById('emailCheck').checked,
-    push:  document.getElementById('pushCheck').checked,
-    phone: document.getElementById('phoneInput').value,
-  };
-  localStorage.setItem('jaldrishti_prefs', JSON.stringify(prefs));
-  showToast('Alert preferences saved successfully!');
-  if (prefs.sms && prefs.phone) setTimeout(() => showToast(`SMS alert configured for ${prefs.phone}`, 4000), 1000);
-});
-
-function loadAlertPrefs() {
-  const prefs = JSON.parse(localStorage.getItem('jaldrishti_prefs') || '{}');
-  if (prefs.sms   !== undefined) document.getElementById('smsCheck').checked   = prefs.sms;
-  if (prefs.email !== undefined) document.getElementById('emailCheck').checked = prefs.email;
-  if (prefs.push  !== undefined) document.getElementById('pushCheck').checked  = prefs.push;
-  if (prefs.phone) document.getElementById('phoneInput').value = prefs.phone;
-}
-
-/* ────────────────────────────────────────────────────────────────
-   11. POLICY & SDG SECTION
-──────────────────────────────────────────────────────────────── */
-function renderPolicyCards() {
-  const grid = document.getElementById('policyGrid');
-  POLICY_DATA.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'policy-card fade-in';
-    card.innerHTML = `
-      <div class="policy-icon"><i class="${p.icon}"></i></div>
-      <h3>${p.title}</h3>
-      <p>${p.desc}</p>
-      <ul>${p.items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+/* ────────────────────────────────
+   POLICY + SDG
+──────────────────────────────── */
+function renderPolicy() {
+  const grid=document.getElementById('policyGrid');
+  if(!grid) return;
+  POLICY_DATA.forEach((p,i)=>{
+    const card=document.createElement('div'); card.className='pol-card';
+    card.setAttribute('data-aos','fade-up'); card.setAttribute('data-aos-delay',i*80+'');
+    card.innerHTML=`<div class="pol-icon"><i class="${p.icon}"></i></div><h3>${p.title}</h3><p>${p.desc}</p><ul>${p.items.map(x=>`<li>${x}</li>`).join('')}</ul>`;
     grid.appendChild(card);
   });
 }
 
-function renderSDGBars() {
-  const container = document.getElementById('sdgBars');
-  SDG_INDICATORS.forEach(ind => {
-    const pct = ((ind.value / ind.target) * 100).toFixed(0);
-    const bar = document.createElement('div');
-    bar.className = 'sdg-bar-item fade-in';
-    bar.innerHTML = `
-      <div class="sdg-bar-label">
-        <span>${ind.label}</span>
-        <span>${ind.value}% of ${ind.target}% target</span>
-      </div>
-      <div class="sdg-bar-track">
-        <div class="sdg-bar-fill" data-fill="${pct}"></div>
-      </div>`;
-    container.appendChild(bar);
+function renderSDG() {
+  const container=document.getElementById('sdgBars');
+  if(!container) return;
+  SDG_DATA.forEach(d=>{
+    const el=document.createElement('div'); el.className='sdg-item';
+    el.innerHTML=`<div class="sdg-row"><span>${d.label}</span><span>${d.val}% of 100%</span></div><div class="sdg-track"><div class="sdg-fill" data-w="${d.val}"></div></div>`;
+    container.appendChild(el);
   });
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.querySelectorAll('.sdg-bar-fill').forEach(fill => fill.style.width = fill.dataset.fill + '%');
-        observer.unobserve(e.target);
-      }
-    });
-  }, { threshold:0.3 });
-  container.querySelectorAll('.sdg-bar-item').forEach(item => observer.observe(item));
+  const io=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting){
+      container.querySelectorAll('.sdg-fill').forEach(f=>{ f.style.width=f.dataset.w+'%'; });
+      io.disconnect();
+    }
+  },{threshold:0.3});
+  io.observe(container);
 }
 
-/* ────────────────────────────────────────────────────────────────
-   12. INTERSECTION OBSERVER (Fade-In)
-──────────────────────────────────────────────────────────────── */
-function initFadeObserver() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.parentElement.querySelectorAll('.fade-in').forEach((el, idx) => {
-          setTimeout(() => el.classList.add('visible'), idx * 80);
-        });
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold:0.1, rootMargin:'0px 0px -40px 0px' });
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+/* ────────────────────────────────
+   GSAP ANIMATIONS
+──────────────────────────────── */
+function initGSAP() {
+  if(typeof gsap==='undefined') return;
+  // Hero entrance
+  gsap.from('.hero-badge',{opacity:0,y:20,duration:0.6,delay:0.1});
+  gsap.from('.hero-title', {opacity:0,y:30,duration:0.7,delay:0.2});
+  gsap.from('.hero-sub',   {opacity:0,y:20,duration:0.6,delay:0.4});
+  gsap.from('.hero-btns',  {opacity:0,y:20,duration:0.5,delay:0.5});
+  gsap.from('.hero-kpis',  {opacity:0,y:20,duration:0.5,delay:0.6});
+  gsap.from('.gw-center',  {scale:0.5,opacity:0,duration:1,delay:0.3,ease:'back.out(1.7)'});
+  gsap.from('.stat-pill',  {opacity:0,scale:0.8,duration:0.5,stagger:0.15,delay:0.7,ease:'back.out(1.5)'});
 }
 
-/* ────────────────────────────────────────────────────────────────
-   13. INIT
-──────────────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
-  renderMetricCards(currentMetrics);
-  renderPolicyCards();
-  renderSDGBars();
+/* ────────────────────────────────
+   CHARTS LAZY INIT
+──────────────────────────────── */
+function initCharts() {
+  initRainfallChart();
+  initReservoirChart();
+  initGroundwaterChart();
+  initCropLossChart();
+  initUsagePieChart();
+  renderReservoirMeters();
+  document.getElementById('rainfallStateSelect').addEventListener('change',e=>initRainfallChart(e.target.value));
+}
+
+/* ────────────────────────────────
+   MAIN INIT
+──────────────────────────────── */
+function initAll() {
+  AOS.init({duration:650,easing:'ease-out-cubic',once:true,offset:60});
+
+  initSidebar();
+  startClock();
+  initTheme();
+  initNotifications();
+  initSearch();
+  initParticles();
+  initHeroCounters();
+  initGSAP();
+
+  renderMetrics(currentMetrics);
   renderAlertFeed();
-  loadAlertPrefs();
+  initAlertSystem();
+  renderPolicy();
+  renderSDG();
+  computeAI(currentMetrics);
+
   initMap();
 
-  let chartsInitialized = false;
-  const chartsObserver = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !chartsInitialized) {
-      chartsInitialized = true;
-      initRainfallChart();
-      initReservoirChart();
-      initGroundwaterChart();
-      initUsagePieChart();
-      chartsObserver.disconnect();
-    }
-  }, { threshold:0.1 });
-  chartsObserver.observe(document.getElementById('analytics'));
+  // Lazy-load charts
+  const io=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting){ initCharts(); io.disconnect(); }
+  },{threshold:0.1});
+  const analyticsSection=document.getElementById('analytics');
+  if(analyticsSection) io.observe(analyticsSection);
 
-  initFadeObserver();
-  updateAlertStatus(currentMetrics);
+  // Auto-fetch weather on load
+  setTimeout(()=>fetchWeather('Delhi'),800);
 
-  setTimeout(() => fetchWeatherData('Delhi'), 1200);
-  setInterval(() => fetchWeatherData(document.getElementById('citySelect').value), 300000);
+  // Periodic refresh every 5 minutes
+  setInterval(()=>fetchWeather(document.getElementById('citySelect').value),300000);
 
-  console.log('%c🌊 JalDrishti Dashboard Loaded — 7 Features Active', 'color:#0ea5e9;font-weight:bold;font-size:14px;');
-});
+  console.log('%c🌊 JalDrishti v2.0 — Intelligence Platform Ready','color:#38bdf8;font-weight:900;font-size:15px;');
+}
+
+/* Boot */
+document.addEventListener('DOMContentLoaded', runLoader);
