@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JalDrishti — Water Security & Drought Intelligence</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-content">
+    <div class="loader-logo">
+      <div class="loader-rings">
+        <div class="lr lr1"></div><div class="lr lr2"></div><div class="lr lr3"></div>
+      </div>
+      <i class="fas fa-water loader-icon"></i>
+    </div>
+    <div class="loader-text">JalDrishti</div>
+    <div class="loader-sub">Initializing Intelligence Platform...</div>
+    <div class="loader-bar"><div class="loader-fill" id="loaderFill"></div></div>
+    <div class="loader-pct" id="loaderPct">0%</div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app-shell" id="appShell">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon"><i class="fas fa-water"></i></div>
+      <div class="brand-text">
+        <span class="brand-name">JalDrishti</span>
+        <span class="brand-ver">v2.0 Intelligence</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="snav-group">Main</div>
+      <a href="#hero" class="snav-item active" data-section="Overview">
+        <i class="fas fa-house"></i><span>Overview</span><div class="snav-ind"></div>
+      </a>
+      <a href="#metrics" class="snav-item" data-section="Live Metrics">
+        <i class="fas fa-gauge-high"></i><span>Live Metrics</span><div class="snav-ind"></div>
+      </a>
+      <div class="snav-group">Monitoring</div>
+      <a href="#map-section" class="snav-item" data-section="Map Monitor">
+        <i class="fas fa-map-location-dot"></i><span>Map Monitor</span><div class="snav-ind"></div>
+      </a>
+      <a href="#analytics" class="snav-item" data-section="Analytics">
+        <i class="fas fa-chart-line"></i><span>Analytics</span><div class="snav-ind"></div>
+      </a>
+      <div class="snav-group">System</div>
+      <a href="#alerts" class="snav-item" data-section="Alerts">
+        <i class="fas fa-bell"></i><span>Alerts</span>
+        <span class="snav-badge">3</span><div class="snav-ind"></div>
+      </a>
+      <a href="#policy" class="snav-item" data-section="Policies">
+        <i class="fas fa-landmark"></i><span>Policies</span><div class="snav-ind"></div>
+      </a>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="sys-online"><span class="online-dot"></span>System Online</div>
+      <div class="sidebar-clock" id="sidebarClock">--:--:--</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrap">
+
+    <!-- TOPBAR -->
+    <header class="topbar" id="topbar">
+      <div class="tb-left">
+        <button class="icon-btn sidebar-toggle" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+        <div class="tb-breadcrumb">
+          <span>JalDrishti</span><i class="fas fa-chevron-right"></i>
+          <span id="currentSection">Overview</span>
+        </div>
+      </div>
+
+      <div class="tb-center">
+        <div class="search-box">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="text" id="stateSearch" placeholder="Search state..." autocomplete="off" />
+          <div class="search-drop" id="searchDrop"></div>
+        </div>
+      </div>
+
+      <div class="tb-right">
+        <select id="yearFilter" class="tb-select">
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+        </select>
+
+        <button class="icon-btn" id="themeToggle" title="Toggle theme">
+          <i class="fas fa-moon" id="themeIcon"></i>
+        </button>
+
+        <div class="notif-wrap">
+          <button class="icon-btn" id="notifBtn">
+            <i class="fas fa-bell"></i>
+            <span class="notif-badge" id="notifBadge">3</span>
+          </button>
+          <div class="notif-panel" id="notifPanel">
+            <div class="np-head">
+              <span>Notifications</span>
+              <button id="clearNotifs">Clear all</button>
+            </div>
+            <div class="np-list" id="npList"></div>
+          </div>
+        </div>
+
+        <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      </div>
+    </header>
+
+    <!-- PAGE -->
+    <div class="page">
+
+      <!-- ── HERO ── -->
+      <section class="hero" id="hero">
+        <canvas id="particleCanvas"></canvas>
+        <div class="hero-inner">
+          <div class="hero-left" data-aos="fade-right" data-aos-duration="800">
+            <div class="hero-badge">
+              <span class="hb-dot"></span>Real-time Climate Intelligence
+            </div>
+            <h1 class="hero-title">
+              Water Security &<br/>
+              <span class="hero-accent">Drought Intelligence</span><br/>
+              Dashboard
+            </h1>
+            <p class="hero-sub">
+              Advanced hydrology monitoring across India's 36 states & territories.
+              AI-assisted drought prediction, live satellite feeds & early warning systems.
+            </p>
+            <div class="hero-btns">
+              <a href="#metrics" class="cta-primary smooth-scroll"><i class="fas fa-chart-line"></i> View Dashboard</a>
+              <a href="#map-section" class="cta-ghost smooth-scroll"><i class="fas fa-satellite"></i> Live Map</a>
+            </div>
+            <div class="hero-kpis">
+              <div class="hkpi"><div class="hkpi-n" data-count="36">0</div><div class="hkpi-l">States Monitored</div></div>
+              <div class="hkpi-sep"></div>
+              <div class="hkpi"><div class="hkpi-n" data-count="1200" data-suffix="K+">0</div><div class="hkpi-l">Data Points/Day</div></div>
+              <div class="hkpi-sep"></div>
+              <div class="hkpi"><div class="hkpi-n" data-count="98" data-suffix="%">0</div><div class="hkpi-l">System Uptime</div></div>
+            </div>
+          </div>
+
+          <div class="hero-right" data-aos="fade-left" data-aos-duration="800" data-aos-delay="200">
+            <div class="globe-widget">
+              <div class="gw-rings">
+                <div class="gwr gwr1"></div><div class="gwr gwr2"></div>
+                <div class="gwr gwr3"></div><div class="gwr gwr4"></div>
+              </div>
+              <div class="gw-center"><i class="fas fa-globe-asia"></i></div>
+              <div class="stat-pill sp1"><i class="fas fa-tint"></i> 52% Reservoir</div>
+              <div class="stat-pill sp2"><i class="fas fa-thermometer-half"></i> 38°C Avg</div>
+              <div class="stat-pill sp3"><i class="fas fa-cloud-rain"></i> 45mm Rain</div>
+              <div class="stat-pill sp4"><i class="fas fa-triangle-exclamation"></i> Severe Risk</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-wave">
+          <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="var(--bg)"/></svg>
+        </div>
+      </section>
+
+      <!-- QUICK STATS -->
+      <div class="quick-stats" id="quickStats">
+        <div class="qs-card" data-aos="fade-up"><div class="qs-ico" style="--c:#0ea5e9"><i class="fas fa-satellite-dish"></i></div><div class="qs-info"><div class="qs-val">143</div><div class="qs-lab">Active Sensors</div></div><div class="qs-trend up"><i class="fas fa-arrow-up"></i> 2.4%</div></div>
+        <div class="qs-card" data-aos="fade-up" data-aos-delay="60"><div class="qs-ico" style="--c:#22c55e"><i class="fas fa-droplet"></i></div><div class="qs-info"><div class="qs-val">67.3%</div><div class="qs-lab">Avg Reservoir Level</div></div><div class="qs-trend dn"><i class="fas fa-arrow-down"></i> 5.1%</div></div>
+        <div class="qs-card" data-aos="fade-up" data-aos-delay="120"><div class="qs-ico" style="--c:#f97316"><i class="fas fa-fire"></i></div><div class="qs-info"><div class="qs-val">12</div><div class="qs-lab">States Under Stress</div></div><div class="qs-trend dn"><i class="fas fa-arrow-down"></i> 1 state</div></div>
+        <div class="qs-card" data-aos="fade-up" data-aos-delay="180"><div class="qs-ico" style="--c:#ef4444"><i class="fas fa-triangle-exclamation"></i></div><div class="qs-info"><div class="qs-val">3</div><div class="qs-lab">Extreme Alerts Active</div></div><div class="qs-trend blink"><i class="fas fa-circle"></i> Live</div></div>
+      </div>
+
+      <!-- ── METRICS ── -->
+      <section class="section" id="metrics">
+        <div class="sec-head" data-aos="fade-up">
+          <div class="sec-tag">Live Telemetry</div>
+          <h2>Key Water Security Metrics</h2>
+          <p>Updated via OpenWeatherMap API — IMD drought thresholds applied</p>
+        </div>
+
+        <div class="city-bar" data-aos="fade-up" data-aos-delay="80">
+          <div class="cb-left">
+            <i class="fas fa-location-dot"></i>
+            <select id="citySelect">
+              <option>Delhi</option><option>Mumbai</option><option>Chennai</option>
+              <option>Kolkata</option><option>Bengaluru</option><option>Hyderabad</option>
+              <option>Ahmedabad</option><option>Jaipur</option><option>Lucknow</option><option>Patna</option>
+            </select>
+            <button id="fetchWeatherBtn" class="fetch-btn"><i class="fas fa-sync-alt" id="fetchIcon"></i> Fetch Live</button>
+          </div>
+          <div class="cb-right">
+            <span class="api-pill" id="apiStatus">Ready</span>
+            <span class="upd-time" id="lastUpdate">—</span>
+          </div>
+        </div>
+
+        <div class="metrics-grid" id="metricsGrid"></div>
+
+        <!-- Insight row: gauge + top5 + anomaly -->
+        <div class="insight-row">
+          <div class="gauge-card" data-aos="fade-up">
+            <h3><i class="fas fa-circle-half-stroke"></i> Drought Severity Gauge</h3>
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 200 120">
+                <path d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="16" stroke-linecap="round"/>
+                <path id="gaugeFill" d="M20,100 A80,80 0 0,1 180,100" fill="none" stroke="#facc15" stroke-width="16" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="125" style="transition:stroke-dashoffset 1.5s ease,stroke 0.5s"/>
+                <text x="100" y="92" text-anchor="middle" id="gaugeValText" style="font-family:Outfit;font-weight:800;font-size:22px;fill:#fff">50%</text>
+                <text x="100" y="110" text-anchor="middle" id="gaugeLabText" style="font-family:Outfit;font-size:11px;fill:#6b8ba4">Moderate</text>
+              </svg>
+              <div class="gauge-scale">
+                <span style="color:#22c55e">Normal</span><span style="color:#facc15">Moderate</span>
+                <span style="color:#f97316">Severe</span><span style="color:#ef4444">Extreme</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="top5-card" data-aos="fade-up" data-aos-delay="80">
+            <h3><i class="fas fa-ranking-star"></i> Top 5 Drought-Affected States</h3>
+            <div id="top5List"></div>
+          </div>
+
+          <div class="anomaly-card" data-aos="fade-up" data-aos-delay="160">
+            <h3><i class="fas fa-chart-column"></i> Rainfall Anomaly Index</h3>
+            <div id="anomalyList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── MAP ── -->
+      <section class="section section-alt" id="map-section">
+        <div class="sec-head" data-aos="fade-up">
+          <div class="sec-tag">Spatial Intelligence</div>
+          <h2>India Drought & Water Stress Map</h2>
+          <p>Click any state for detailed metrics. Toggle layers using controls below.</p>
+        </div>
+
+        <div class="map-toolbar" data-aos="fade-up" data-aos-delay="80">
+          <div class="mt-left">
+            <label><i class="fas fa-calendar-days"></i> Year:</label>
+            <select id="yearSelect"><option value="2025">2025 (Current)</option><option value="2024">2024</option><option value="2023">2023</option></select>
+          </div>
+          <div class="mt-mid">
+            <label class="tgl-wrap"><input type="checkbox" id="heatmapToggle" checked/><span class="tgl"></span><span><i class="fas fa-fire-flame-curved"></i> Heatmap</span></label>
+            <label class="tgl-wrap"><input type="checkbox" id="choroplethToggle" checked/><span class="tgl"></span><span><i class="fas fa-layer-group"></i> Drought Zones</span></label>
+          </div>
+          <div class="mt-right">
+            <button class="ghost-btn" id="resetMapBtn"><i class="fas fa-crosshairs"></i> Reset View</button>
+          </div>
+        </div>
+
+        <div class="map-outer" data-aos="fade-up" data-aos-delay="120">
+          <div id="indiaMap"></div>
+          <div class="map-legend">
+            <div class="ml-title"><i class="fas fa-circle-info"></i> Severity</div>
+            <div class="ml-item"><span class="mldot" style="background:#22c55e"></span>Normal</div>
+            <div class="ml-item"><span class="mldot" style="background:#facc15"></span>Moderate</div>
+            <div class="ml-item"><span class="mldot" style="background:#f97316"></span>Severe</div>
+            <div class="ml-item"><span class="mldot" style="background:#ef4444"></span>Extreme</div>
+          </div>
+          <div class="map-loader" id="mapLoader"><div class="map-spin"></div><span>Loading map…</span></div>
+        </div>
+      </section>
+
+      <!-- ── ANALYTICS ── -->
+      <section class="section" id="analytics">
+        <div class="sec-head" data-aos="fade-up">
+          <div class="sec-tag">Analytics</div>
+          <h2>Water Trends & Intelligence</h2>
+          <p>12-month rolling data with AI anomaly detection.</p>
+        </div>
+
+        <!-- AI Prediction -->
+        <div class="ai-banner" data-aos="fade-up" data-aos-delay="80" id="aiBanner">
+          <div class="ai-left">
+            <div class="ai-icon"><i class="fas fa-robot"></i></div>
+            <div>
+              <div class="ai-title">AI Drought Prediction Model</div>
+              <div class="ai-sub">Rainfall trend + temperature anomaly analysis over 12 months</div>
+            </div>
+          </div>
+          <div class="ai-right">
+            <div class="ai-prob" id="aiProb">--</div>
+            <div class="ai-risk" id="aiRisk">Calculating...</div>
+          </div>
+          <div class="ai-track"><div class="ai-fill" id="aiFill" style="width:0%"></div></div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card span2" data-aos="fade-up">
+            <div class="cc-head">
+              <div><h3><i class="fas fa-cloud-rain"></i> Rainfall Trend</h3><p>Monthly mm vs 30-yr normal</p></div>
+              <select id="rainfallStateSelect" class="cc-sel"><option>All India</option><option>Rajasthan</option><option>Maharashtra</option><option>Kerala</option><option>Punjab</option></select>
+            </div>
+            <canvas id="rainfallChart"></canvas>
+          </div>
+          <div class="chart-card" data-aos="fade-up" data-aos-delay="60">
+            <div class="cc-head"><div><h3><i class="fas fa-database"></i> Reservoir Storage</h3><p>BCM — top 10 dams</p></div></div>
+            <canvas id="reservoirChart"></canvas>
+          </div>
+          <div class="chart-card" data-aos="fade-up" data-aos-delay="120">
+            <div class="cc-head"><div><h3><i class="fas fa-arrow-trend-down"></i> Groundwater Depletion</h3><p>Depth to water table (m)</p></div></div>
+            <canvas id="groundwaterChart"></canvas>
+          </div>
+          <div class="chart-card" data-aos="fade-up" data-aos-delay="60">
+            <div class="cc-head"><div><h3><i class="fas fa-wheat-awn"></i> Crop Loss Statistics</h3><p>% area under drought stress</p></div></div>
+            <canvas id="cropLossChart"></canvas>
+          </div>
+          <div class="chart-card donut-card" data-aos="fade-up" data-aos-delay="120">
+            <div class="cc-head"><div><h3><i class="fas fa-pie-chart"></i> Water Usage by Sector</h3><p>Annual freshwater share</p></div></div>
+            <canvas id="usagePieChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Reservoir fill meters -->
+        <div class="res-meters" data-aos="fade-up" data-aos-delay="80">
+          <h3 class="rm-title"><i class="fas fa-water"></i> Reservoir Fill Visualization</h3>
+          <div class="rm-grid" id="rmGrid"></div>
+        </div>
+      </section>
+
+      <!-- ── ALERTS ── -->
+      <section class="section section-alt" id="alerts">
+        <div class="sec-head" data-aos="fade-up">
+          <div class="sec-tag warning">Early Warning</div>
+          <h2>Drought Alert System</h2>
+          <p>Automated triggers when drought severity crosses critical thresholds.</p>
+        </div>
+
+        <div class="alerts-layout">
+          <div class="asc" data-aos="fade-right">
+            <div class="asc-radar">
+              <div class="rr rr1"></div><div class="rr rr2"></div><div class="rr rr3"></div>
+              <i class="fas fa-satellite-dish asc-ico"></i>
+            </div>
+            <h3>System Status</h3>
+            <p id="alertSysStatus">Monitoring Active</p>
+            <div class="sev-track"><div class="sev-fill" id="sevFill" style="width:45%"></div></div>
+            <span class="sev-chip moderate" id="sevChip">Moderate Risk</span>
+          </div>
+
+          <div class="alert-prefs" data-aos="fade-up">
+            <h3>Alert Preferences</h3>
+            <div class="pref-list">
+              <label class="tgl-wrap"><input type="checkbox" id="smsCheck"/><span class="tgl"></span><span><i class="fas fa-sms"></i> SMS Alerts</span></label>
+              <label class="tgl-wrap"><input type="checkbox" id="emailCheck" checked/><span class="tgl"></span><span><i class="fas fa-envelope"></i> Email Alerts</span></label>
+              <label class="tgl-wrap"><input type="checkbox" id="pushCheck" checked/><span class="tgl"></span><span><i class="fas fa-bell"></i> Push Notifications</span></label>
+            </div>
+            <div class="pref-phone">
+              <input type="tel" id="phoneInput" placeholder="+91 98765 43210"/>
+              <button class="cta-primary" id="saveAlertBtn"><i class="fas fa-save"></i> Save</button>
+            </div>
+            <div class="thr-block">
+              <h4>Active Thresholds</h4>
+              <div class="thr-row"><span>Rainfall &lt; 40mm/month</span><span class="chip severe">Severe</span></div>
+              <div class="thr-row"><span>Rainfall &lt; 20mm/month</span><span class="chip extreme">Extreme</span></div>
+              <div class="thr-row"><span>Temperature &gt; 40°C</span><span class="chip extreme">Extreme</span></div>
+            </div>
+          </div>
+
+          <div class="alert-feed" data-aos="fade-left">
+            <h3><i class="fas fa-list-ul"></i> Live Alert Feed</h3>
+            <div class="af-list" id="alertFeedList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── POLICY ── -->
+      <section class="section" id="policy">
+        <div class="sec-head" data-aos="fade-up">
+          <div class="sec-tag">Governance</div>
+          <h2>Policy & Governance Framework</h2>
+          <p>Government schemes, water allocation policies & SDG 6 tracking.</p>
+        </div>
+        <div class="policy-grid" id="policyGrid"></div>
+        <div class="sdg-block" data-aos="fade-up">
+          <div class="sdg-head">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/SDG_logo_without_UN_emblem_square_RGB.svg" alt="SDG" class="sdg-logo"/>
+            <div><h3>SDG 6 — Clean Water & Sanitation</h3><p>India's progress towards 2030 targets</p></div>
+          </div>
+          <div id="sdgBars"></div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="footer">
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <div class="brand-icon"><i class="fas fa-water"></i></div>
+            <div>
+              <div class="brand-name">JalDrishti</div>
+              <div style="font-size:0.78rem;color:var(--muted)">India's Water Intelligence Platform</div>
+            </div>
+          </div>
+          <div class="footer-links">
+            <a href="#metrics">Metrics</a><a href="#map-section">Map</a>
+            <a href="#analytics">Analytics</a><a href="#policy">Policy</a>
+          </div>
+          <div class="footer-copy">© 2025 JalDrishti · Data simulated for demonstration · Leaflet · Chart.js · OpenWeatherMap</div>
+        </div>
+      </footer>
+
+    </div><!-- /page -->
+  </div><!-- /main-wrap -->
+</div><!-- /app-shell -->
+
+<!-- EXTREME DROUGHT MODAL -->
+<div class="modal-bg" id="droughtModal">
+  <div class="modal-box">
+    <div class="modal-alert-ico"><i class="fas fa-triangle-exclamation"></i></div>
+    <h2>⚠️ EXTREME DROUGHT ALERT</h2>
+    <p id="modalMsg">Critical drought conditions detected. Immediate action required.</p>
+    <div class="modal-sms" id="modalSmsBadge" style="display:none"><i class="fas fa-check-circle"></i> SMS Alert Dispatched</div>
+    <div class="modal-btns">
+      <button class="cta-primary" id="modalAck">Acknowledge</button>
+      <button class="cta-ghost" id="modalClose">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-box" id="toastBox"></div>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
