@@ -555,12 +555,129 @@ function RegionPage() {
   );
 }
 
+// ── FIX 2: RESPOND Modal ─────────────────────────────────────────────────
+// RespondModal renders a full-screen overlay with response options.
+// It is lifted into AlertsPage state so only one modal renders at a time.
+function RespondModal({ alert: a, onClose }) {
+  const [action, setAction] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  // Prevent background scroll while modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const actions = {
+    FLOOD:    ["Deploy NDRF teams", "Issue evacuation order", "Activate flood relief camps", "Alert downstream districts"],
+    DROUGHT:  ["Initiate tanker supply", "Activate emergency borewells", "Release drought relief funds", "Advisory to farmers"],
+    QUALITY:  ["Shut affected borewells", "Deploy mobile water ATMs", "Send CPCB inspection team", "Issue public health notice"],
+    SCARCITY: ["Enable inter-basin transfer", "Activate desalination plants", "Implement odd-even supply", "Issue conservation advisory"],
+  };
+  const options = actions[a.type] || ["Acknowledge alert", "Escalate to state HQ", "Dispatch field team"];
+
+  function handleSubmit() {
+    if (!action) return;
+    setSubmitted(true);
+    // In production: POST to /api/alerts/:id/respond with { action }
+    console.log(`[JalDristhi] Alert ${a.id} — Response logged: "${action}"`);
+  }
+
+  return (
+    // Overlay backdrop
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999,
+      display: "flex", alignItems: "center", justifyContent: "center"
+    }}>
+      {/* Modal card — stopPropagation so clicks inside don't close it */}
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#0d2137", border: "1px solid rgba(255,165,0,0.3)", borderRadius: 12,
+        padding: 24, width: 440, maxWidth: "90vw", position: "relative"
+      }}>
+        {/* Close button */}
+        <button onClick={onClose} style={{
+          position: "absolute", top: 12, right: 12, background: "transparent",
+          border: "none", color: "rgba(255,255,255,0.4)", fontSize: 18, cursor: "pointer", lineHeight: 1
+        }}>✕</button>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 16 }}>
+          <span style={{ fontSize: 28 }}>{alertIcon(a.type)}</span>
+          <div>
+            <div style={{ color: sevColor(a.severity), fontSize: 12, fontWeight: 700, letterSpacing: "0.06em" }}>{a.severity} — {a.type}</div>
+            <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{a.region}</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 16, lineHeight: 1.6, background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: 6 }}>
+          {a.desc}
+        </div>
+
+        {submitted ? (
+          // ── Success state after response is logged ──
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+            <div style={{ color: "#22c55e", fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Response Logged</div>
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Action: "{action}"</div>
+            <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginTop: 4 }}>Incident #{a.id} updated · {new Date().toLocaleTimeString("en-IN")}</div>
+            <button onClick={onClose} style={{ marginTop: 16, padding: "7px 22px", borderRadius: 6, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", color: "#22c55e", fontSize: 11, cursor: "pointer" }}>CLOSE</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 10, color: "rgba(255,165,0,0.8)", letterSpacing: "0.08em", marginBottom: 8 }}>SELECT RESPONSE ACTION</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+              {options.map(opt => (
+                <button key={opt} onClick={() => setAction(opt)} style={{
+                  textAlign: "left", padding: "8px 12px", borderRadius: 6, fontSize: 11, cursor: "pointer", transition: "all 0.15s",
+                  background: action === opt ? "rgba(255,165,0,0.15)" : "rgba(255,255,255,0.03)",
+                  border: action === opt ? "1px solid rgba(255,165,0,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                  color: action === opt ? "#f97316" : "rgba(255,255,255,0.6)"
+                }}>
+                  {action === opt ? "✓ " : "○ "}{opt}
+                </button>
+              ))}
+            </div>
+            <button onClick={handleSubmit} disabled={!action} style={{
+              width: "100%", padding: "9px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: action ? "pointer" : "not-allowed",
+              background: action ? "linear-gradient(135deg,rgba(249,115,22,0.3),rgba(239,68,68,0.2))" : "rgba(255,255,255,0.05)",
+              border: action ? "1px solid rgba(249,115,22,0.5)" : "1px solid rgba(255,255,255,0.08)",
+              color: action ? "#f97316" : "rgba(255,255,255,0.2)", letterSpacing: "0.06em", transition: "all 0.2s"
+            }}>
+              CONFIRM RESPONSE
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── ALERTS PAGE ────────────────────────────────────────────────────────────
 function AlertsPage() {
   const [filter, setFilter] = useState("ALL");
+  // FIX 2: respondingTo holds the alert object that the RESPOND button was clicked for
+  const [respondingTo, setRespondingTo] = useState(null);
+  // respondedIds tracks which alerts have been actioned (for visual feedback)
+  const [respondedIds, setRespondedIds] = useState(new Set());
+
   const filtered = filter === "ALL" ? ALERTS : ALERTS.filter(a => a.type === filter);
+
+  function handleRespond(alert) {
+    setRespondingTo(alert);
+  }
+
+  function handleModalClose() {
+    // When modal closes after a submission, mark alert as responded
+    if (respondingTo) {
+      setRespondedIds(prev => new Set([...prev, respondingTo.id]));
+    }
+    setRespondingTo(null);
+  }
+
   return (
     <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Render modal as a portal-like overlay when an alert is selected */}
+      {respondingTo && <RespondModal alert={respondingTo} onClose={handleModalClose} />}
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "rgba(255,165,0,0.9)", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em" }}>ALERT MANAGEMENT CENTRE</span>
         <div style={{ display: "flex", gap: 6 }}>
@@ -575,21 +692,41 @@ function AlertsPage() {
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {filtered.map(a => (
-          <div key={a.id} style={{ padding: "12px 14px", borderRadius: 8, background: `${sevColor(a.severity)}08`, border: `1px solid ${sevColor(a.severity)}30`, display: "flex", gap: 14, alignItems: "flex-start" }}>
-            <div style={{ fontSize: 24 }}>{alertIcon(a.type)}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: sevColor(a.severity), letterSpacing: "0.06em" }}>{a.severity}</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.06)", padding: "1px 7px", borderRadius: 8 }}>{a.type}</span>
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto" }}>{a.time}</span>
+        {filtered.map(a => {
+          const isResponded = respondedIds.has(a.id);
+          return (
+            <div key={a.id} style={{
+              padding: "12px 14px", borderRadius: 8,
+              background: isResponded ? "rgba(34,197,94,0.04)" : `${sevColor(a.severity)}08`,
+              border: `1px solid ${isResponded ? "rgba(34,197,94,0.25)" : `${sevColor(a.severity)}30`}`,
+              display: "flex", gap: 14, alignItems: "flex-start",
+              transition: "all 0.3s"
+            }}>
+              <div style={{ fontSize: 24 }}>{alertIcon(a.type)}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: sevColor(a.severity), letterSpacing: "0.06em" }}>{a.severity}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", background: "rgba(255,255,255,0.06)", padding: "1px 7px", borderRadius: 8 }}>{a.type}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginLeft: "auto" }}>{a.time}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#fff", fontWeight: 600, marginBottom: 4 }}>{a.region}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{a.desc}</div>
               </div>
-              <div style={{ fontSize: 12, color: "#fff", fontWeight: 600, marginBottom: 4 }}>{a.region}</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{a.desc}</div>
+              {/* FIX 2: onClick handler bound to handleRespond with the specific alert */}
+              <button
+                onClick={() => handleRespond(a)}
+                style={{
+                  padding: "5px 14px", borderRadius: 6, fontSize: 10, cursor: "pointer", transition: "all 0.2s", flexShrink: 0,
+                  background: isResponded ? "rgba(34,197,94,0.1)" : "rgba(255,165,0,0.1)",
+                  border: isResponded ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(255,165,0,0.3)",
+                  color: isResponded ? "#22c55e" : "#f97316"
+                }}
+              >
+                {isResponded ? "✓ RESPONDED" : "RESPOND"}
+              </button>
             </div>
-            <button style={{ padding: "5px 14px", borderRadius: 6, background: "rgba(255,165,0,0.1)", border: "1px solid rgba(255,165,0,0.3)", color: "#f97316", fontSize: 10, cursor: "pointer" }}>RESPOND</button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -598,21 +735,69 @@ function AlertsPage() {
 // ── AI INSIGHTS PAGE ──────────────────────────────────────────────────────
 function AIPage() {
   const [loading, setLoading] = useState(false);
+  // FIX 3: analysed controls whether the full insight grid is shown.
+  // runAnalysis simulates an async API call with a loading state.
   const [analysed, setAnalysed] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  function runAnalysis() {
+    if (loading) return;
+    setLoading(true);
+    setAnalysed(false);
+    setProgress(0);
+    let p = 0;
+    const tick = setInterval(() => {
+      p += Math.floor(Math.random() * 18) + 8;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(tick);
+        setProgress(100);
+        setTimeout(() => { setLoading(false); setAnalysed(true); }, 300);
+      } else { setProgress(p); }
+    }, 200);
+  }
 
   return (
     <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "rgba(255,165,0,0.9)", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em" }}>AI-POWERED WATER INTELLIGENCE ENGINE</span>
-        <button onClick={() => { setLoading(true); setTimeout(() => { setLoading(false); setAnalysed(true); }, 1800); }} style={{
-          padding: "6px 18px", borderRadius: 6, background: "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(168,85,247,0.2))",
-          border: "1px solid rgba(59,130,246,0.4)", color: "#60a5fa", fontSize: 11, cursor: "pointer", letterSpacing: "0.06em"
+        {/* FIX 3: onClick bound to runAnalysis function */}
+        <button onClick={runAnalysis} disabled={loading} style={{
+          padding: "6px 18px", borderRadius: 6,
+          background: loading ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg,rgba(59,130,246,0.2),rgba(168,85,247,0.2))",
+          border: loading ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(59,130,246,0.4)",
+          color: loading ? "rgba(255,255,255,0.3)" : "#60a5fa", fontSize: 11,
+          cursor: loading ? "not-allowed" : "pointer", letterSpacing: "0.06em", minWidth: 140, transition: "all 0.2s"
         }}>
-          {loading ? "⏳ Analysing..." : "◉ RUN ANALYSIS"}
+          {loading ? `⏳ Analysing… ${progress}%` : analysed ? "◉ RE-RUN ANALYSIS" : "◉ RUN ANALYSIS"}
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      {/* FIX 3: Progress bar shown while loading */}
+      {loading && (
+        <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8, padding: "14px 16px" }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.08em", marginBottom: 8 }}>RUNNING PREDICTIVE MODELS — PROCESSING SENSOR TELEMETRY</div>
+          <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#3b82f6,#a855f7)", borderRadius: 2, transition: "width 0.15s ease" }} />
+          </div>
+          {["Fetching satellite soil-moisture data…","Running ML drought risk model…","Calibrating flood prediction index…","Generating recommendations…"].map((step, i) => (
+            <div key={i} style={{ fontSize: 10, color: progress > (i + 1) * 24 ? "#22c55e" : "rgba(255,255,255,0.2)", marginTop: 6, transition: "color 0.3s" }}>
+              {progress > (i + 1) * 24 ? "✓" : "○"} {step}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FIX 3: Show a prompt to run analysis if not yet analysed */}
+      {!analysed && !loading && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.2)", fontSize: 13 }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>◉</div>
+          Click <strong style={{ color: "#60a5fa" }}>RUN ANALYSIS</strong> to generate AI-powered water risk insights
+        </div>
+      )}
+
+      {/* FIX 3: Insight cards only rendered after analysis completes */}
+      {analysed && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {AI_INSIGHTS.map((ins, i) => (
           <div key={ins.region} style={{ padding: "14px 16px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderTop: `2px solid ${ins.risk > 80 ? "#ef4444" : ins.risk > 70 ? "#f97316" : "#f59e0b"}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -636,9 +821,9 @@ function AIPage() {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
-      <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 14 }}>
+      {analysed && <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 14 }}>
         <div style={{ color: "rgba(255,165,0,0.9)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 10 }}>DEMAND FORECAST – NEXT 12 MONTHS (BCM)</div>
         <ResponsiveContainer width="100%" height={160}>
           <LineChart data={[
@@ -655,9 +840,85 @@ function AIPage() {
             <Line type="monotone" dataKey="supply" stroke="#22c55e" strokeWidth={2} dot={false} name="Supply" strokeDasharray="4 2" />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+      </div>}
     </div>
   );
+}
+
+// ── FIX 4: Export Utilities ──────────────────────────────────────────────
+// exportCSV uses the Blob API — no external library needed.
+// It builds a CSV string from the dashboard state data and triggers download.
+function exportCSV() {
+  const headers = ["State", "Reservoir (%)", "Rainfall (mm)", "Groundwater (m)", "WQI", "LPCD (L)", "Stress Index"];
+  const rows = Object.entries(STATES_DATA).map(([state, d]) => [
+    state, d.reservoir, d.rainfall, d.groundwater, d.wqi, d.lpcd, d.stress
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `JalDristhi_WaterData_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  console.log("[JalDristhi] CSV exported successfully");
+}
+
+// exportPDF generates a styled HTML page and uses the browser's print-to-PDF.
+// This requires no external library and works in all modern browsers.
+function exportPDF() {
+  const rows = Object.entries(STATES_DATA).map(([state, d]) =>
+    `<tr>
+      <td>${state}</td><td>${d.reservoir}%</td><td>${d.rainfall}mm</td>
+      <td>${d.groundwater}m</td>
+      <td style="color:${d.wqi === "Safe" ? "green" : d.wqi === "Moderate" ? "orange" : "red"}">${d.wqi}</td>
+      <td>${d.lpcd}L</td>
+      <td>${Math.round(d.stress * 100)}%</td>
+    </tr>`
+  ).join("");
+
+  const alertRows = ALERTS.map(a =>
+    `<tr><td>${a.type}</td><td>${a.severity}</td><td>${a.region}</td><td>${a.desc}</td><td>${a.time}</td></tr>`
+  ).join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>JalDristhi Water Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
+      h1 { color: #1d4ed8; border-bottom: 2px solid #1d4ed8; padding-bottom: 8px; }
+      h2 { color: #374151; margin-top: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+      th { background: #1e3a5f; color: #fff; padding: 7px 10px; text-align: left; }
+      td { padding: 6px 10px; border-bottom: 1px solid #e5e7eb; }
+      tr:nth-child(even) td { background: #f9fafb; }
+      .footer { margin-top: 32px; font-size: 11px; color: #6b7280; }
+    </style></head><body>
+    <h1>💧 JalDristhi — National Water Monitor Report</h1>
+    <p>Generated: ${new Date().toLocaleString("en-IN")} | Data as of 2024</p>
+    <h2>State-wise Water Data</h2>
+    <table><thead><tr>
+      <th>State</th><th>Reservoir</th><th>Rainfall</th><th>Groundwater</th><th>WQI</th><th>LPCD</th><th>Stress</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <h2>Active Alerts</h2>
+    <table><thead><tr>
+      <th>Type</th><th>Severity</th><th>Region</th><th>Description</th><th>Time</th>
+    </tr></thead><tbody>${alertRows}</tbody></table>
+    <div class="footer">JalDristhi · National Water Monitor · Ministry of Jal Shakti · India</div>
+    </body></html>`;
+
+  const printWin = window.open("", "_blank", "width=900,height=700");
+  if (!printWin) { alert("Allow pop-ups to export PDF"); return; }
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 400);
+  console.log("[JalDristhi] PDF export triggered via browser print");
 }
 
 // ── ADMIN PAGE ────────────────────────────────────────────────────────────
@@ -716,8 +977,8 @@ function AdminPage() {
               ))}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-              <button style={{ flex: 1, padding: "8px", borderRadius: 6, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", color: "#60a5fa", fontSize: 11, cursor: "pointer" }}>📄 Export CSV</button>
-              <button style={{ flex: 1, padding: "8px", borderRadius: 6, background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.3)", color: "#c084fc", fontSize: 11, cursor: "pointer" }}>📋 Export PDF</button>
+              <button onClick={exportCSV} style={{ flex: 1, padding: "8px", borderRadius: 6, background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", color: "#60a5fa", fontSize: 11, cursor: "pointer" }}>📄 Export CSV</button>
+              <button onClick={exportPDF} style={{ flex: 1, padding: "8px", borderRadius: 6, background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.3)", color: "#c084fc", fontSize: 11, cursor: "pointer" }}>📋 Export PDF</button>
             </div>
           </div>
         </div>
@@ -737,7 +998,8 @@ export default function JalDristhi() {
   const PageComponent = pages[page];
 
   return (
-    <div style={{ fontFamily: "'Rajdhani', 'IBM Plex Sans', 'Noto Sans', sans-serif", background: dark ? "#060f1c" : "#0a1a2e", color: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'Rajdhani', 'IBM Plex Sans', 'Noto Sans', sans-serif", background: dark ? "#060f1c" : "#0a1a2e", color: "#fff", minHeight: "100vh", display: "flex", flexDirection: "column",
+      /* FIX 1: Explicit margin/padding reset on root element ensures no white border */ margin: 0, padding: 0, width: "100%" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600&display=swap');
         @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
@@ -745,7 +1007,10 @@ export default function JalDristhi() {
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,165,0,0.2); border-radius: 2px; }
-        * { box-sizing: border-box; }
+        /* FIX 1: Global box-sizing + margin/padding reset to eliminate white border */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0 !important; padding: 0 !important; background: #060f1c; overflow-x: hidden; }
+        #root { margin: 0 !important; padding: 0 !important; max-width: 100% !important; border: none !important; }
       `}</style>
 
       <TopBar dark={dark} setDark={setDark} state={state} setState={setState} city={city} setCity={setCity} />

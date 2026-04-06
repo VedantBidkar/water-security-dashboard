@@ -1,3 +1,23 @@
+/* ── FIX 1: Global CSS reset ─────────────────────────────────────────────
+   Removes default browser margin/padding that caused the white border
+   around the entire dashboard. box-sizing: border-box is applied
+   universally for predictable sizing. overflow-x is hidden to prevent
+   horizontal scrollbars. ────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background: #060f1c; /* matches JalDristhi dark bg — no flash of white */
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -55,15 +75,17 @@ body {
 }
 
 #root {
-  width: 1126px;
+  /* ── FIX 1 continued: stretch root to full viewport width ── */
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  padding: 0;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 h1,
